@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens from docs/wireframes. Tailwind v4 turns every --color-* into
+ * utilities (bg-ground, text-ink, border-line, …) and --font-* into font-sans /
+ * font-serif. Change a colour here and it changes everywhere.
+ * Keep this file light: no @import of third-party CSS (it would load on every page).
+ */
+@theme {
+  /* Surfaces and text */
+  --color-frame: #e7e5de;
+  --color-ground: #f5f4f0;
+  --color-card: #ffffff;
+  --color-ink: #1c1f24;
+  --color-body: #3b4048;
+  --color-muted: #5f6670;
+  --color-line: #dcdad3;
+
+  /* Form fields */
+  --color-field: #fbfaf7;
+  --color-field-line: #cfccc3;
+
+  /* Brand accent */
+  --color-accent: #0f6b63;
+  --color-accent-strong: #0a4d47;
+  --color-accent-soft: #e3f1ef;
+  --color-accent-line: #b9dcd6;
+
+  /* Header */
+  --color-nav-active: #343a42;
+  --color-nav-idle: #c9ccd1;
+
+  /* Attention text ("Reply needed") */
+  --color-attention: #8f3d0c;
+
+  /* Status badges: background / text */
+  --color-status-new: #eceae4;
+  --color-status-new-text: #3b4048;
+  --color-status-needs-info: #fbeed8;
+  --color-status-needs-info-text: #6b3a06;
+  --color-status-updated: #d6efe9;
+  --color-status-updated-text: #0a4d47;
+  --color-status-email-sent: #e4ecf7;
+  --color-status-email-sent-text: #1d4f91;
+  --color-status-booked: #e2f2e6;
+  --color-status-booked-text: #1d6b35;
+
+  /* Fonts (loaded in app/layout.tsx with next/font) */
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, serif;
+
+  /* Radii */
+  --radius-field: 8px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+}
+
+@layer base {
+  html {
+    background: var(--color-ground);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--color-body);
+    background: var(--color-ground);
+  }
+
+  a {
+    color: var(--color-accent);
+  }
+
+  a:hover {
+    color: var(--color-accent-strong);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
