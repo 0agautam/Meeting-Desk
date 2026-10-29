@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated AppSail build output (docs/HOSTING.md) — gitignored, not our code.
+    "catalyst_build/**",
   ]),
 ]);
 

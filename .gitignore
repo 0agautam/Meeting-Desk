@@ -1,0 +1,48 @@
+# This repo tracks meeting-desk-web/ only. Everything else at the root
+# (brief, docs, memory files, local tooling config) stays untracked on purpose.
+/CLAUDE.md
+/ONBOARDING.md
+/HANDOFF.md
+/docs/
+/.envrc
+/.claude/
+/start-claude-code.cmd
+
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# catalyst
+catalyst_build/
+.catalystrc
+app-config.json
+catalyst-config.json
+catalyst.json
+cli-config.json
+.catalyst/
+
+# env and secrets
+.env
+.env*.local
+.env.catalyst.*
+*.pem
+*.key
+service-account*.json
+client_secret_*.json
+
+# logs and OS files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+.DS_Store
+Thumbs.db
+.vercel
+coverage/

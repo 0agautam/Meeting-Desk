@@ -8,13 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "build:appsail": "node scripts/build-appsail.mjs"
+    "build:appsail": "node scripts/build-appsail.mjs",
+    "deploy:appsail": "node scripts/deploy-appsail.mjs",
+    "deploy:demo": "node scripts/deploy-appsail.mjs --env .env.catalyst.local",
+    "deploy:abr": "node scripts/deploy-appsail.mjs --env .env.catalyst.abr"
   },
   "dependencies": {
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "server-only": "0.0.1"
+    "server-only": "0.0.1",
+    "zcatalyst-sdk-node": "^3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

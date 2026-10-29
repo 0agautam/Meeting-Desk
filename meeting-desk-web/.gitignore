@@ -30,6 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# per-deployment Catalyst workspaces (scripts/deploy-appsail.mjs)
+/.deploy/
+
 # env files (can opt-in for committing if needed)
 .env*
 
