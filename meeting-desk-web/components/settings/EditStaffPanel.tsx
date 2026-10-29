@@ -1,6 +1,6 @@
 import { deleteStaffAndData, deleteStaffMember, saveStaffSettings } from "@/app/(staff)/settings/actions";
 import type { Staff } from "@/lib/types";
-import { BTN, BTN_PRIMARY, FIELD_LABEL, FIELD_SELECT } from "@/lib/ui/classes";
+import { BTN, BTN_PRIMARY, FIELD_INPUT, FIELD_LABEL, FIELD_SELECT } from "@/lib/ui/classes";
 import RolesField from "./RolesField";
 import { BUFFER_OPTIONS, CALENDAR_OPTIONS, SETTINGS_PAGE } from "./settingsContent";
 
@@ -48,6 +48,16 @@ export default function EditStaffPanel({ staff, error, isSelf, data }: { staff: 
               ))}
             </select>
           </div>
+        </div>
+        <div>
+          <label className={FIELD_LABEL} htmlFor="slug">
+            {SETTINGS_PAGE.slugLabel}
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted">/book/</span>
+            <input id="slug" name="slug" defaultValue={staff.slug} maxLength={40} autoComplete="off" className={FIELD_INPUT} />
+          </div>
+          <p className="m-0 mt-1.5 text-xs text-muted">{SETTINGS_PAGE.slugHelp}</p>
         </div>
         <RolesField defaultRoles={staff.roles} />
         {error ? (

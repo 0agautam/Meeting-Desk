@@ -13,6 +13,8 @@ export const SETTINGS_PAGE = {
   calendarLabel: "Calendar",
   bufferBeforeLabel: "Buffer before meetings",
   bufferAfterLabel: "Buffer after meetings",
+  slugLabel: "Booking link name",
+  slugHelp: "Letters, numbers and dashes. Made from the name by default. Changing it stops booking links already sent from working.",
   /** The team table cell: one number when both sides match. */
   bufferCell: (before: number, after: number) => (before === after ? `${before} min` : `${before} before · ${after} after`),
   save: "Save",
@@ -24,6 +26,8 @@ export const SETTINGS_PAGE = {
     "last-admin": "There must always be at least one admin.",
     invalid: "Enter a name, a valid email and at least one role.",
     duplicate: "That email is already on the team.",
+    "slug-invalid": "The booking link name can only have lowercase letters, numbers and single dashes (2 to 40 characters).",
+    "slug-taken": "Another person already has that booking link name.",
     self: "You can't delete your own account.",
     "has-requests": "This person still has meeting requests. Remove their host role instead, so the requests keep their history.",
     confirm: "Tick the box to confirm before deleting.",

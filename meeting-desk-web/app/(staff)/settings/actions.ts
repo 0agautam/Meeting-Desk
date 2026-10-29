@@ -40,7 +40,9 @@ function parseBuffers(formData: FormData): { bufferBeforeMin: number; bufferAfte
   return known(bufferBeforeMin) && known(bufferAfterMin) ? { bufferBeforeMin, bufferAfterMin } : undefined;
 }
 
-/** Wireframe 4's "Save" — updates a person's roles, calendar and buffers. Admin only. */
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** Wireframe 4's "Save" — updates a person's roles, calendar, buffers and booking link name. Admin only. */
 export async function saveStaffSettings(formData: FormData) {
   await requireRole("admin");
   const id = String(formData.get("staffId") ?? "");
@@ -59,7 +61,15 @@ export async function saveStaffSettings(formData: FormData) {
     redirect(`/settings?edit=${id}&error=last-admin`);
   }
 
-  await updateStaff(id, { roles, calendarProvider, ...buffers });
+  // The booking link name: lowercase letters, numbers and dashes, and not another person's. Left alone if the form doesn't carry one.
+  const slugInput = formData.get("slug");
+  const slug = typeof slugInput === "string" ? slugInput.trim().toLowerCase() : undefined;
+  if (slug !== undefined && slug !== target?.slug) {
+    if (!SLUG_PATTERN.test(slug) || slug.length < 2 || slug.length > 40) redirect(`/settings?edit=${id}&error=slug-invalid`);
+    if (staff.some((s) => s.id !== id && s.slug === slug)) redirect(`/settings?edit=${id}&error=slug-taken`);
+  }
+
+  await updateStaff(id, { roles, calendarProvider, ...buffers, ...(slug !== undefined ? { slug } : {}) });
   revalidatePath("/settings");
   redirect("/settings");
 }

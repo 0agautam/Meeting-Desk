@@ -59,6 +59,15 @@ export async function listStaffFromStore(): Promise<Staff[]> {
   const app = await tryGetCatalystApp();
   if (!app) return getStore().staff;
   const res = await app.datastore().table(TABLE).getPagedRows({ maxRows: 200 });
+  // A person added by hand in the console has no booking link name yet: it is made from their name and saved here.
+  const taken = new Set<string>(res.data.map((r) => String(r.slug ?? "")).filter(Boolean));
+  for (const row of res.data) {
+    if (row.slug) continue;
+    const slug = uniqueSlug(slugify(String(row.name ?? "")) || "host", taken);
+    taken.add(slug);
+    row.slug = slug;
+    await app.datastore().table(TABLE).updateRow({ ROWID: row.ROWID, slug });
+  }
   return res.data.map(rowToStaff);
 }
 
@@ -67,6 +76,7 @@ export async function getStaffFromStore(id: string): Promise<Staff | undefined> 
   if (!app) return getStore().staff.find((s) => s.id === id);
   try {
     const row = await app.datastore().table(TABLE).getRow(id);
+    if (!row.slug) return (await listStaffFromStore()).find((s) => s.id === id);
     return rowToStaff(row);
   } catch {
     return undefined;
@@ -91,7 +101,7 @@ export async function getStaffBySlugFromStore(slug: string): Promise<Staff | und
 
 export async function updateStaffInStore(
   id: string,
-  patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles">>,
+  patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles" | "slug">>,
 ): Promise<Staff> {
   const app = await tryGetCatalystApp();
   if (!app) {
@@ -109,12 +119,20 @@ export async function updateStaffInStore(
       ...("bufferBeforeMin" in patch ? { buffer_before_min: patch.bufferBeforeMin } : {}),
       ...("bufferAfterMin" in patch ? { buffer_after_min: patch.bufferAfterMin } : {}),
       ...("roles" in patch ? { role: (patch.roles ?? []).join(",") } : {}),
+      ...("slug" in patch ? { slug: patch.slug } : {}),
     });
   return rowToStaff(updated);
 }
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+/** The base, or base-2, base-3… if it is already taken. */
+function uniqueSlug(base: string, taken: Set<string>): string {
+  let slug = base;
+  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+  return slug;
 }
 
 export async function createStaffInStore(input: {

@@ -33,8 +33,10 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
         showAdd={add === "1"}
         error={typeof error === "string" ? error : undefined}
       />
-      <OrganisationCrm account={crmAccount} message={crmMessage} />
-      <OrganisationHours timezone={savedOrg.timezone} hours={savedOrg.hours} message={hoursMessage} />
+      <div className="grid grid-cols-2 items-start gap-6 max-lg:grid-cols-1">
+        <OrganisationCrm account={crmAccount} message={crmMessage} />
+        <OrganisationHours timezone={savedOrg.timezone} hours={savedOrg.hours} message={hoursMessage} />
+      </div>
     </div>
   );
 }

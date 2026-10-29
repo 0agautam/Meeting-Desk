@@ -2,7 +2,7 @@
 export const ORG_HOURS = {
   title: "Time zone and business hours",
   lede: "Every time Meeting Desk offers, shows or puts in a calendar uses this time zone and these hours. They are first copied from your Zoho CRM when it is connected; you can change them here.",
-  notSet: "Not set yet. Connect the Zoho CRM above to copy them from it, or set them here. Until then no times can be offered.",
+  notSet: "Not set yet. Connect the Zoho CRM above to copy them, or set them here. Until then no times can be offered.",
   timezoneLabel: "Time zone",
   timezoneSearch: "Search time zones…",
   timezoneNone: "No time zone matches that.",
@@ -10,6 +10,8 @@ export const ORG_HOURS = {
   hoursLabel: "Working days and hours",
   startLabel: (day: string) => `${day} start`,
   endLabel: (day: string) => `${day} end`,
+  edit: "Edit",
+  set: "Set time zone and hours",
   save: "Save",
   refresh: "Refresh from CRM",
   refreshHelp: "Replaces the saved time zone and hours with what the Zoho CRM has now.",

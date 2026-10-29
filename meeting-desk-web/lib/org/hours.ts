@@ -82,3 +82,18 @@ export function timeZoneLabel(timeZone: string, at: Date = new Date()): string {
     return timeZone;
   }
 }
+
+/** "Mon–Fri 10:00–17:00" (several groups, joined with commas, when days differ): a one-line summary of the working days and hours. */
+export function summarizeHours(hours: WorkingHours): string {
+  const groups: { first: string; last: string; start: string; end: string }[] = [];
+  for (const w of WEEKDAYS) {
+    if (!hours.days.includes(w.day)) continue;
+    const { start, end } = hours.byDay?.[w.day] ?? { start: hours.start, end: hours.end };
+    const short = w.name.slice(0, 3);
+    const last = groups[groups.length - 1];
+    const previousDay = WEEKDAYS[WEEKDAYS.findIndex((x) => x.day === w.day) - 1];
+    if (last && last.start === start && last.end === end && previousDay && last.last === previousDay.name.slice(0, 3)) last.last = short;
+    else groups.push({ first: short, last: short, start, end });
+  }
+  return groups.map((g) => `${g.first === g.last ? g.first : `${g.first}–${g.last}`} ${g.start}–${g.end}`).join(", ");
+}
