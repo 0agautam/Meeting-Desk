@@ -2,7 +2,7 @@
 export const LOGIN_PAGE = {
   metaTitle: "Sign in",
   title: "Sign in to Meeting Desk",
-  lede: "Enter your work email. You need to be on the team list — an admin adds you.",
+  lede: "Use the Zoho account you use for CRM. You need to be on the team list.",
   emailLabel: "Work email",
   emailPlaceholder: "you@amazingbusinessresults.ca",
   submit: "Continue",
@@ -11,7 +11,9 @@ export const LOGIN_PAGE = {
   notOnList: "That email isn't on the team list. Ask an admin to add you.",
   signOut: "Sign out",
   zohoButton: "Continue with Zoho",
-  or: "or use your email",
+  or: "or",
+  emailToggle: "Use your work email instead",
+  needAccess: "Need access? Ask an admin to add you.",
   /** Shown when "Continue with Zoho" didn't finish (keyed by the `error` value in the address). */
   zohoErrors: {
     "not-on-list": "That Zoho account's email isn't on the team list. Ask an admin to add you.",
