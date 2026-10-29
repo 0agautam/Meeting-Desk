@@ -8,7 +8,14 @@
 // Layout
 export const PAGE_BODY = "mx-auto flex w-full max-w-[1280px] flex-1 gap-6 px-8 py-6 max-md:flex-col max-md:px-4";
 export const PANEL = "min-w-0 flex-1 rounded-panel border border-line bg-card px-7 py-6 max-md:px-4";
-export const SIDEBAR = "flex w-[340px] shrink-0 flex-col gap-2.5 max-md:w-full";
+/** Left column of the two-pane screens: its own scroll on wide screens. */
+export const SIDEBAR = "flex w-[340px] shrink-0 flex-col gap-2.5 max-lg:w-full lg:min-h-0 lg:overflow-y-auto";
+/**
+ * The desk and the host's requests are app-style screens: on wide screens (lg and up) the page itself doesn't scroll
+ * (everything below the 3.5rem header is the screen) and each column scrolls on its own; narrower screens stack and scroll normally.
+ */
+export const APP_SHELL = "flex flex-1 flex-col lg:h-[calc(100dvh-3.5rem)] lg:flex-none lg:overflow-hidden";
+export const SHELL_BODY = "flex w-full flex-1 gap-5 px-6 pb-5 max-lg:flex-col max-lg:px-4 lg:min-h-0";
 export const CARD = "block rounded-card border border-line bg-card px-3.5 py-3 text-body no-underline";
 
 // Type
@@ -26,7 +33,7 @@ export const FIELD_SELECT = FIELD_INPUT;
 export const FIELD_TEXTAREA =
   "box-border w-full flex-1 min-h-[120px] resize-none rounded-field border border-field-line bg-field px-3 py-2.5 text-ink placeholder:text-muted";
 // A field the host has edited since the request was last submitted (wireframe 2:
-// "changes are highlighted for Celian").
+// "changes are highlighted for the coordinator").
 export const FIELD_INPUT_CHANGED = `${FIELD_INPUT} border-accent bg-accent-soft`;
 
 // Controls (min 44px touch targets for buttons — CLAUDE.md accessibility rule)

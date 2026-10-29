@@ -18,7 +18,8 @@ export type Staff = {
   id: string;
   name: string;
   email: string;
-  role: StaffRole;
+  /** One or more of host / coordinator / admin. Admin can do everything. Stored comma-separated in Data Store. */
+  roles: StaffRole[];
   calendarProvider: CalendarProvider | null;
   bufferMin: number;
   workingHours: WorkingHours;
@@ -29,10 +30,46 @@ export type Staff = {
 
 export type RequestStatus = "new" | "needs_info" | "updated" | "email_sent" | "booked";
 
+/** An ABR person joining the meeting, picked from the CRM's users. Just invited: no required/optional, calendar not checked. */
 export type Attendee = {
-  staffId: string;
-  required: boolean;
+  name: string;
+  email: string;
+  crmUserId?: string;
 };
+
+/** A concrete time the coordinator offered the client for one request. */
+export type OfferedSlot = {
+  startUtc: string;
+  endUtc: string;
+  /** The grey tentative event holding this time in the host's calendar, until the meeting is booked or the hold is released. */
+  holdEventId?: string;
+  /** The same grey hold on each invited team member's own calendar (their staff id and event id). */
+  attendeeHolds?: { staffId: string; eventId: string }[];
+};
+
+/**
+ * What the host's notes say about timing, as read by the AI and then corrected by the coordinator.
+ * Applied when times are picked; `other` carries anything that isn't about timing so nothing is dropped.
+ */
+export type SchedulingConstraints = {
+  /** First day a meeting may take place (YYYY-MM-DD), or null. */
+  earliestDate: string | null;
+  /** Last day a meeting may take place (YYYY-MM-DD), or null. */
+  latestDate: string | null;
+  /** Days of the week to avoid, Sunday = 0 … Saturday = 6. */
+  avoidWeekdays: number[];
+  timeOfDay: "morning" | "afternoon" | "any";
+  /** Meetings must start at or after this time (HH:mm, host's time zone), or null. */
+  notBeforeTime: string | null;
+  /** Meetings must end at or before this time (HH:mm, host's time zone), or null. */
+  notAfterTime: string | null;
+  /** How soon the notes say the meeting is needed, judged by the AI from the wording: "normal" starts at the 2nd working day, "soon" at the next working day, "today" may offer later today. */
+  urgency: "normal" | "soon" | "today";
+  other: string;
+};
+
+/** The client email as the coordinator last saved it. Generated from the offered times; she can edit every part. */
+export type EmailDraft = { subject: string; body: string; to: string[]; cc: string[] };
 
 export type MeetingRequest = {
   id: string;
@@ -46,6 +83,12 @@ export type MeetingRequest = {
   status: RequestStatus;
   version: number;
   crmAccount?: string;
+  /** Times generated for the client's email; empty until the coordinator generates the email. */
+  offeredSlots: OfferedSlot[];
+  /** Saved email for the client; absent until the coordinator generates it. Cleared when the host resubmits. */
+  emailDraft?: EmailDraft;
+  /** What the notes say about timing; absent until the notes were read (on the first Generate email). Cleared when the host edits the request. */
+  constraints?: SchedulingConstraints;
   createdAt: string;
   updatedAt: string;
 };
@@ -54,6 +97,8 @@ export type RequestEventType =
   | "submitted"
   | "info_requested"
   | "host_replied"
+  | "host_edited"
+  | "email_edited"
   | "email_copied"
   | "marked_sent"
   | "booked"
@@ -88,4 +133,8 @@ export type Booking = {
   failureReason?: string;
   /** Unique `hostId|startUtc` — the double-booking guard. */
   slotKey: string;
+  /** Set once the real calendar event is created (Zoho: the event uid). */
+  providerEventId?: string;
+  /** Zoho only — needed to update/delete the event later (docs/RESEARCH.md §10). */
+  providerEventEtag?: string;
 };

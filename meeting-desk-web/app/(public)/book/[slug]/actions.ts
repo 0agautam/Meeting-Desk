@@ -14,7 +14,7 @@ export async function submitBooking(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim();
 
   const host = await getStaffBySlug(slug);
-  if (!host || host.role !== "host" || !startUtc || !endUtc || !name || !email) {
+  if (!host || !host.roles.includes("host") || !startUtc || !endUtc || !name || !email) {
     redirect(`/book/${slug}`);
   }
 
