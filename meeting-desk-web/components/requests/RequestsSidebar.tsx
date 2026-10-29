@@ -10,14 +10,19 @@ export default function RequestsSidebar({
   requests,
   draft,
   currentRequestId,
+  status = "all",
 }: {
   requests: MeetingRequest[];
   draft?: RequestDraft;
   currentRequestId?: string;
+  /** The selected status chip ("all" shows everything). */
+  status?: string;
 }) {
-  const open = requests.filter((r) => r.status !== "booked").length;
-  const booked = requests.length - open;
-  const counts = { open, booked, all: requests.length };
+  const count = (key: string) => (key === "all" ? requests.length : requests.filter((r) => r.status === key).length);
+  const visible = status === "all" ? requests : requests.filter((r) => r.status === status);
+  // Chips keep you on the request you have open; the filter rides along in the URL.
+  const base = currentRequestId ? `/requests/${currentRequestId}` : "/requests";
+  const query = status === "all" ? "" : `?status=${status}`;
 
   return (
     <aside className={SIDEBAR} aria-label={REQUESTS_PAGE.sidebarTitle}>
@@ -28,12 +33,16 @@ export default function RequestsSidebar({
         </Link>
       </div>
 
-      {/* TODO (wireframe 1): make the filters work (searchParams or client state). */}
-      <div className="flex gap-1.5">
-        {REQUESTS_PAGE.filters.map((f, i) => (
-          <span key={f.key} className={i === 0 ? CHIP_ACTIVE : CHIP}>
-            {f.label} {counts[f.key]}
-          </span>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={REQUESTS_PAGE.filterLabel}>
+        {REQUESTS_PAGE.filters.map((f) => (
+          <Link
+            key={f.key}
+            href={`${base}${f.key === "all" ? "" : `?status=${f.key}`}`}
+            aria-current={f.key === status ? "true" : undefined}
+            className={f.key === status ? CHIP_ACTIVE : CHIP}
+          >
+            {f.label} {count(f.key)}
+          </Link>
         ))}
       </div>
 
@@ -46,12 +55,13 @@ export default function RequestsSidebar({
             </div>
           </li>
         ) : null}
-        {requests.map((r) => {
+        {visible.length === 0 ? <li className={META}>{REQUESTS_PAGE.emptyFilter}</li> : null}
+        {visible.map((r) => {
           const isCurrent = r.id === currentRequestId;
           return (
             <li key={r.id}>
               <Link
-                href={`/requests/${r.id}`}
+                href={`/requests/${r.id}${query}`}
                 aria-current={isCurrent ? "page" : undefined}
                 className={`${CARD} hover:border-accent ${isCurrent ? "border-2 border-accent" : ""}`}
               >

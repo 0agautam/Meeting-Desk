@@ -80,4 +80,17 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
+
+  /* Tailwind's reset leaves buttons with the default arrow; clickable things get the hand. */
+  button:not(:disabled),
+  select:not(:disabled),
+  summary,
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
 }

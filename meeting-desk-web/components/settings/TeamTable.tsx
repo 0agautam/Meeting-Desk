@@ -2,12 +2,14 @@ import Link from "next/link";
 import AddPersonPanel from "@/components/settings/AddPersonPanel";
 import CopyLinkButton from "@/components/settings/CopyLinkButton";
 import EditStaffPanel from "@/components/settings/EditStaffPanel";
+import Modal from "@/components/ui/Modal";
+import { roleLabel } from "@/lib/auth/permissions";
 import type { Staff } from "@/lib/types";
 import { BTN_PRIMARY, PAGE_LEDE, PAGE_TITLE, PANEL } from "@/lib/ui/classes";
 import { CALENDAR_LABEL, CALENDAR_PILL_CLASS, SETTINGS_PAGE } from "./settingsContent";
 
 /** Wireframe 4: the team table, plus the Edit or Add panel for whichever row is active. */
-export default function TeamTable({ staff, editId, showAdd }: { staff: Staff[]; editId?: string; showAdd?: boolean }) {
+export default function TeamTable({ staff, currentUserId, editId, showAdd, error }: { staff: Staff[]; currentUserId: string; editId?: string; showAdd?: boolean; error?: string }) {
   const editing = editId ? staff.find((s) => s.id === editId) : undefined;
 
   return (
@@ -38,7 +40,7 @@ export default function TeamTable({ staff, editId, showAdd }: { staff: Staff[]; 
                 <div className="font-semibold text-ink">{s.name}</div>
                 <div className="text-xs text-muted">{s.email}</div>
               </td>
-              <td className="px-2 py-3 capitalize">{s.role}</td>
+              <td className="px-2 py-3">{roleLabel(s.roles)}</td>
               <td className="px-2 py-3">
                 {s.calendarProvider ? (
                   <span className={`inline-flex h-7 items-center rounded-full px-2.5 text-xs font-semibold ${CALENDAR_PILL_CLASS[s.calendarProvider]}`}>
@@ -48,13 +50,13 @@ export default function TeamTable({ staff, editId, showAdd }: { staff: Staff[]; 
                   <span className="text-muted">–</span>
                 )}
               </td>
-              <td className="px-2 py-3">{s.role === "host" ? `${s.bufferMin} min` : <span className="text-muted">–</span>}</td>
+              <td className="px-2 py-3">{s.roles.includes("host") ? `${s.bufferMin} min` : <span className="text-muted">–</span>}</td>
               <td className="px-2 py-3">
-                {s.role === "host" ? <Link href={`/book/${s.slug}`}>/book/{s.slug}</Link> : <span className="text-muted">–</span>}
+                {s.roles.includes("host") ? <Link href={`/book/${s.slug}`}>/book/{s.slug}</Link> : <span className="text-muted">–</span>}
               </td>
               <td className="px-2 py-3 text-right">
                 <div className="flex justify-end gap-2">
-                  {s.role === "host" ? <CopyLinkButton path={`/book/${s.slug}`} /> : null}
+                  {s.roles.includes("host") ? <CopyLinkButton path={`/book/${s.slug}`} /> : null}
                   <Link
                     href={`/settings?edit=${s.id}`}
                     className="inline-flex h-8 items-center rounded-field border border-field-line bg-card px-3 text-xs font-semibold text-ink hover:bg-ground"
@@ -67,7 +69,15 @@ export default function TeamTable({ staff, editId, showAdd }: { staff: Staff[]; 
           ))}
         </tbody>
       </table>
-      {showAdd ? <AddPersonPanel /> : editing ? <EditStaffPanel staff={editing} /> : null}
+      {showAdd ? (
+        <Modal title={SETTINGS_PAGE.addTitle} closeHref="/settings" closeLabel={SETTINGS_PAGE.close}>
+          <AddPersonPanel error={error} />
+        </Modal>
+      ) : editing ? (
+        <Modal title={SETTINGS_PAGE.editTitle(editing.name)} subtitle={editing.email} closeHref="/settings" closeLabel={SETTINGS_PAGE.close}>
+          <EditStaffPanel staff={editing} error={error} isSelf={editing.id === currentUserId} />
+        </Modal>
+      ) : null}
     </section>
   );
 }

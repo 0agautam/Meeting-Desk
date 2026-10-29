@@ -2,16 +2,20 @@ import Link from "next/link";
 import StatusBadge from "@/components/ui/StatusBadge";
 import type { MeetingRequest, Staff } from "@/lib/types";
 import { CARD, CARD_TITLE, META, SIDEBAR } from "@/lib/ui/classes";
+import { formatAgo } from "@/lib/ui/formatDateTime";
 
 /** Left queue of wireframe 3. Server component. */
 export default function DeskQueue({
   requests,
   staff,
   activeId,
+  query = "",
 }: {
   requests: MeetingRequest[];
   staff: Staff[];
   activeId?: string;
+  /** The desk's current filters (see deskQuery), kept on the link so opening a request doesn't reset them. */
+  query?: string;
 }) {
   const hostName = (id: string) => staff.find((s) => s.id === id)?.name ?? "Unknown";
 
@@ -21,7 +25,7 @@ export default function DeskQueue({
         {requests.map((r) => (
           <li key={r.id}>
             <Link
-              href={`/desk/${r.id}`}
+              href={`/desk/${r.id}${query}`}
               aria-current={r.id === activeId ? "page" : undefined}
               className={`${CARD} hover:border-accent ${r.id === activeId ? "border-2 border-accent" : ""}`}
             >
@@ -30,6 +34,7 @@ export default function DeskQueue({
               <div className={META}>
                 {r.to[0] ?? "No client email yet"} · {r.durationMin} min · host {hostName(r.hostId)}
               </div>
+              <div className={META}>Submitted {formatAgo(r.createdAt)}</div>
             </Link>
           </li>
         ))}

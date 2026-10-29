@@ -7,6 +7,12 @@ import { META, PANEL } from "@/lib/ui/classes";
 
 export const metadata: Metadata = { title: BOOKING_CONFIRMED.metaTitle };
 
+/** "jane.doe@acme.com" → "j***@acme.com": this page is public and booking ids are guessable, so the full address isn't shown. */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  return domain ? `${local.charAt(0)}***@${domain}` : "your email";
+}
+
 /** Wireframe 7. Reads the real booking + host by id, so this reflects what was actually saved. */
 export default async function BookingConfirmedPage({
   params,
@@ -33,7 +39,7 @@ export default async function BookingConfirmedPage({
         <b className="text-ink">{BOOKING_CONFIRMED.meetingWith(host?.name ?? "your host")}</b>
         {range ? <span>{range}</span> : null}
       </div>
-      {booking ? <p className={META}>{BOOKING_CONFIRMED.invite(booking.clientEmail)}</p> : null}
+      {booking ? <p className={META}>{BOOKING_CONFIRMED.invite(maskEmail(booking.clientEmail))}</p> : null}
       <p className={META}>{BOOKING_CONFIRMED.contact}</p>
     </BookingCard>
   );

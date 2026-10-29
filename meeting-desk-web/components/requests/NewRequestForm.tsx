@@ -1,74 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { saveRequestDraft, submitRequest, submitRequestAndStartAnother } from "@/app/(staff)/requests/actions";
+import type { CrmIssue, CrmUser } from "@/lib/crm/users";
 import type { Staff } from "@/lib/types";
-import {
-  BTN,
-  BTN_GHOST,
-  BTN_PRIMARY,
-  CHIP,
-  CHIP_ACCENT,
-  CHIP_ACTIVE,
-  CHIP_DASHED,
-  FIELD_INPUT,
-  FIELD_LABEL,
-  FIELD_SELECT,
-  FIELD_TEXTAREA,
-  META,
-} from "@/lib/ui/classes";
-import { DEFAULT_DURATION_MIN, DURATION_OPTIONS, MOCK_CRM_DIRECTORY, NEW_REQUEST_FORM } from "./requestsContent";
+import { BTN, BTN_GHOST, BTN_PRIMARY, CHIP, CHIP_ACTIVE, FIELD_INPUT, FIELD_LABEL, FIELD_SELECT, FIELD_TEXTAREA } from "@/lib/ui/classes";
+import AttendeePicker from "./AttendeePicker";
+import RecipientPicker from "./RecipientPicker";
+import { DEFAULT_DURATION_MIN, DURATION_OPTIONS, NEW_REQUEST_FORM } from "./requestsContent";
 
-type Contact = { name: string; email: string };
-type AttendeeState = { staffId: string; required: boolean };
-
-function findCrmMatch(query: string) {
-  const q = query.trim().toLowerCase();
-  if (!q) return undefined;
-  return MOCK_CRM_DIRECTORY.find((d) => d.domain.toLowerCase().includes(q) || d.company.toLowerCase().includes(q));
-}
-
-/** Wireframe 1's form. Client component: chips, duration and the CRM-search demo need local state. */
-export default function NewRequestForm({ staff, defaultHostId }: { staff: Staff[]; defaultHostId: string }) {
-  const hosts = staff.filter((s) => s.role === "host");
+/** Wireframe 1's form. Client component: the pickers and the duration chips need local state. */
+export default function NewRequestForm({
+  staff,
+  defaultHostId,
+  selectableHostIds,
+  crmUsers,
+  crmUsersIssue,
+  crmUsersDetail,
+}: {
+  staff: Staff[];
+  defaultHostId: string;
+  /** Hosts this person may submit for: just themselves for a host, every host for an admin. */
+  selectableHostIds: string[];
+  /** The CRM's active users: the "Who from ABR is joining?" picklist. */
+  crmUsers: CrmUser[];
+  /** Why the CRM user list couldn't be loaded (null when it was), so the picklist says so instead of looking empty. */
+  crmUsersIssue: CrmIssue | null;
+  /** Zoho's own error code behind that issue, when it gave one. */
+  crmUsersDetail?: string;
+}) {
+  const hosts = staff.filter((s) => s.roles.includes("host") && selectableHostIds.includes(s.id));
   const [hostId, setHostId] = useState(defaultHostId);
-  const [clientQuery, setClientQuery] = useState("");
-  const [to, setTo] = useState<Contact[]>([]);
-  const [cc, setCc] = useState<Contact[]>([]);
-  const [attendees, setAttendees] = useState<AttendeeState[]>([]);
   const [durationMin, setDurationMin] = useState<number>(DEFAULT_DURATION_MIN);
-
   const host = staff.find((s) => s.id === hostId);
-  const crmMatch = useMemo(() => findCrmMatch(clientQuery), [clientQuery]);
-  const addedEmails = useMemo(() => new Set([...to, ...cc].map((c) => c.email)), [to, cc]);
-  const nextContact = crmMatch?.contacts.find((c) => !addedEmails.has(c.email));
-  const attendeeCandidates = staff.filter((s) => s.id !== hostId && !attendees.some((a) => a.staffId === s.id));
-
-  function addFromCrm() {
-    if (!nextContact) return;
-    if (to.length === 0) setTo((prev) => [...prev, nextContact]);
-    else setCc((prev) => [...prev, nextContact]);
-  }
-
-  function addPerson() {
-    const next = attendeeCandidates[0];
-    if (!next) return;
-    setAttendees((prev) => [...prev, { staffId: next.id, required: true }]);
-  }
-
-  /** Click cycles required → optional → removed (wireframe 1 shows no separate remove control for these chips). */
-  function cycleAttendee(staffId: string) {
-    setAttendees((prev) => {
-      const current = prev.find((a) => a.staffId === staffId);
-      if (current?.required) return prev.map((a) => (a.staffId === staffId ? { ...a, required: false } : a));
-      return prev.filter((a) => a.staffId !== staffId);
-    });
-  }
-
-  function onHostChange(nextHostId: string) {
-    setHostId(nextHostId);
-    setAttendees((prev) => prev.filter((a) => a.staffId !== nextHostId));
-  }
 
   return (
     <form action={submitRequest} className="flex flex-1 flex-col gap-4">
@@ -77,13 +41,7 @@ export default function NewRequestForm({ staff, defaultHostId }: { staff: Staff[
           <label className={FIELD_LABEL} htmlFor="hostId">
             {NEW_REQUEST_FORM.hostLabel}
           </label>
-          <select
-            id="hostId"
-            name="hostId"
-            className={FIELD_SELECT}
-            value={hostId}
-            onChange={(e) => onHostChange(e.target.value)}
-          >
+          <select id="hostId" name="hostId" className={FIELD_SELECT} value={hostId} onChange={(e) => setHostId(e.target.value)}>
             {hosts.map((h) => (
               <option key={h.id} value={h.id}>
                 {h.name}
@@ -95,100 +53,13 @@ export default function NewRequestForm({ staff, defaultHostId }: { staff: Staff[
           <label className={FIELD_LABEL} htmlFor="subject">
             {NEW_REQUEST_FORM.subjectLabel}
           </label>
-          <input
-            id="subject"
-            name="subject"
-            required
-            className={FIELD_INPUT}
-            placeholder={NEW_REQUEST_FORM.subjectPlaceholder}
-          />
+          <input id="subject" name="subject" required className={FIELD_INPUT} placeholder={NEW_REQUEST_FORM.subjectPlaceholder} />
         </div>
       </div>
 
-      <div>
-        <label className={FIELD_LABEL} htmlFor="clientQuery">
-          {NEW_REQUEST_FORM.clientLabel}
-        </label>
-        <input
-          id="clientQuery"
-          className={FIELD_INPUT}
-          placeholder={NEW_REQUEST_FORM.clientPlaceholder}
-          value={clientQuery}
-          onChange={(e) => setClientQuery(e.target.value)}
-        />
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {clientQuery.trim() ? (
-            <span className={META}>
-              {crmMatch ? `${crmMatch.company} · ${crmMatch.contacts.length} contacts found` : NEW_REQUEST_FORM.noMatch}
-            </span>
-          ) : null}
-          {to.map((c) => (
-            <span key={c.email} className={CHIP}>
-              To: {c.name}
-              <button type="button" aria-label={`Remove ${c.name} from To`} onClick={() => setTo((p) => p.filter((x) => x.email !== c.email))}>
-                ×
-              </button>
-            </span>
-          ))}
-          {cc.map((c) => (
-            <span key={c.email} className={CHIP}>
-              Cc: {c.name}
-              <button type="button" aria-label={`Remove ${c.name} from Cc`} onClick={() => setCc((p) => p.filter((x) => x.email !== c.email))}>
-                ×
-              </button>
-            </span>
-          ))}
-          {crmMatch && nextContact ? (
-            <button type="button" className={CHIP_ACCENT} onClick={addFromCrm}>
-              {NEW_REQUEST_FORM.addFromCrm}
-            </button>
-          ) : null}
-        </div>
-        {crmMatch ? <input type="hidden" name="crmAccount" value={crmMatch.company} /> : null}
-        {to.map((c) => (
-          <input key={c.email} type="hidden" name="to" value={c.email} />
-        ))}
-        {cc.map((c) => (
-          <input key={c.email} type="hidden" name="cc" value={c.email} />
-        ))}
-      </div>
+      <RecipientPicker />
 
-      <div>
-        <span className={FIELD_LABEL}>{NEW_REQUEST_FORM.attendeesLabel}</span>
-        <div className="flex flex-wrap gap-2">
-          {host ? <span className={CHIP}>{host.name} · host</span> : null}
-          {attendees.map((a) => {
-            const person = staff.find((s) => s.id === a.staffId);
-            if (!person) return null;
-            return (
-              <button
-                key={a.staffId}
-                type="button"
-                className={a.required ? CHIP : CHIP_DASHED}
-                onClick={() => cycleAttendee(a.staffId)}
-                aria-label={`${person.name}, ${a.required ? "required" : "optional"} — click to change`}
-              >
-                {person.name} · {a.required ? "required" : "optional"}
-              </button>
-            );
-          })}
-          {attendeeCandidates.length > 0 ? (
-            <button type="button" className={CHIP_ACCENT} onClick={addPerson}>
-              {NEW_REQUEST_FORM.addPerson}
-            </button>
-          ) : null}
-        </div>
-        {attendees
-          .filter((a) => a.required)
-          .map((a) => (
-            <input key={a.staffId} type="hidden" name="requiredAttendee" value={a.staffId} />
-          ))}
-        {attendees
-          .filter((a) => !a.required)
-          .map((a) => (
-            <input key={a.staffId} type="hidden" name="optionalAttendee" value={a.staffId} />
-          ))}
-      </div>
+      <AttendeePicker crmUsers={crmUsers} issue={crmUsersIssue} detail={crmUsersDetail} hostName={host?.name} hostEmail={host?.email} />
 
       <div>
         <span className={FIELD_LABEL}>{NEW_REQUEST_FORM.durationLabel}</span>

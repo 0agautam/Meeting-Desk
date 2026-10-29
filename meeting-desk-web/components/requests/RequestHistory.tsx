@@ -5,6 +5,8 @@ const DOT_COLOR: Record<string, string> = {
   submitted: "bg-muted",
   info_requested: "bg-attention",
   host_replied: "bg-accent",
+  host_edited: "bg-accent",
+  email_edited: "bg-accent",
   email_copied: "bg-accent",
   marked_sent: "bg-accent",
   booked: "bg-accent",
@@ -20,7 +22,7 @@ function eventLine(event: RequestEvent, staffById: Map<string, Staff>, eventCopy
 /**
  * Shared timeline used by both the host (wireframe 2) and desk (wireframe 3) detail
  * pages. `eventCopy` and `nextAction` are supplied by the caller so each page can
- * phrase the same event from its own point of view (e.g. "You asked" vs "Celian asked").
+ * phrase the same event from its own point of view (e.g. "You asked" vs "The coordinator asked").
  */
 export default function RequestHistory({
   events,
@@ -38,7 +40,7 @@ export default function RequestHistory({
   footer: string;
 }) {
   return (
-    <aside className="flex w-[230px] shrink-0 flex-col gap-3.5 border-l border-line pl-5 text-[13px] max-md:w-full max-md:border-l-0 max-md:border-t max-md:pt-4 max-md:pl-0">
+    <aside className="flex w-[320px] shrink-0 flex-col gap-3.5 rounded-panel border border-line bg-card p-5 text-[13px] max-lg:w-full lg:min-h-0 lg:overflow-y-auto">
       <div className="text-xs font-semibold text-ink">{title}</div>
       {events.map((event) => (
         <div key={event.id} className="flex gap-2.5">

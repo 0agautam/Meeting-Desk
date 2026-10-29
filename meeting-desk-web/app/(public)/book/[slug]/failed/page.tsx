@@ -22,13 +22,19 @@ export default async function BookingFailedPage({ params, searchParams }: PagePr
     ? `${new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long", month: "long", day: "numeric" }).format(new Date(booking.startUtc))} · ${new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit", timeZoneName: "shortGeneric" }).format(new Date(booking.startUtc))}`
     : "That time";
   const ref = booking ? booking.id.slice(-6).toUpperCase() : "UNKNOWN";
+  // "That time was just taken" gets the wireframe's specific-time wording; any other
+  // reason (e.g. a real calendar error — lib/data/index.ts createBooking) shows as-is.
+  const message =
+    !booking?.failureReason || booking.failureReason === "That time was just taken."
+      ? BOOKING_FAILED.taken(when)
+      : booking.failureReason;
 
   return (
     <BookingCard title={BOOKING_FAILED.title} lede={BOOKING_FAILED.lede} icon={<ResultIcon kind="warning" />}>
       <div className={`${PANEL} flex flex-col gap-1`}>
-        <b className="text-ink">{BOOKING_FAILED.taken(when)}</b>
+        <b className="text-ink">{message}</b>
       </div>
-      <Link href={`/book/${slug}`} className={`${BTN_PRIMARY} self-start`}>
+      <Link href={booking?.requestId ? `/book/${slug}/${booking.requestId}` : `/book/${slug}`} className={`${BTN_PRIMARY} self-start`}>
         {BOOKING_FAILED.retry}
       </Link>
       <p className={META}>{BOOKING_FAILED.contact(ref)}</p>

@@ -2,32 +2,57 @@
 export const REQUESTS_PAGE = {
   metaTitle: "My requests",
   sidebarTitle: "My requests",
+  filterLabel: "Filter by status",
+  emptyFilter: "No requests with this status.",
   newRequestCta: { label: "+ New request", href: "/requests" },
+  /** Status chips on the host's list. "all" is the default, so every request is visible until a status is picked. */
   filters: [
-    { key: "open", label: "Open" },
-    { key: "booked", label: "Booked" },
     { key: "all", label: "All" },
+    { key: "new", label: "New" },
+    { key: "needs_info", label: "Needs info" },
+    { key: "updated", label: "Updated" },
+    { key: "email_sent", label: "Email sent" },
+    { key: "booked", label: "Booked" },
   ],
 } as const;
 
 export const NEW_REQUEST_FORM = {
   title: "New meeting request",
-  lede: "Celian picks this up, may ask you questions here, then emails the client your booking link.",
+  lede: "The coordinator picks this up, may ask you questions here, then emails the client your booking link.",
   wireframe: "1-host-my-requests.html",
   hostLabel: "Host",
   subjectLabel: "What is the meeting about?",
   subjectPlaceholder: "e.g. Q4 planning session",
-  clientLabel: "Client (search Zoho CRM by name, email or domain)",
-  clientPlaceholder: "e.g. northwind.co",
-  addFromCrm: "+ Add from CRM",
-  noMatch: "No match yet — Zoho CRM search arrives in a later phase.",
+  clientLabel: "Client: search the CRM, or type an email address",
+  clientPlaceholder: "Name, email or domain, e.g. northwind.co",
+  clientHelp: "Searches your Zoho CRM contacts and leads. Anyone not in the CRM can be added by typing their full email address.",
+  notInCrm: "Not found in the CRM. Use this email address.",
+  leadsUnavailable: "Leads weren't searched, only contacts. Reconnect Zoho to include them.",
+  searching: "Searching Zoho CRM…",
+  minChars: "Type at least 2 characters to search.",
+  noResults: "No contacts found in Zoho CRM.",
+  unavailable: "Zoho CRM search isn't available right now. Try again in a moment.",
+  noEmail: "No email in Zoho CRM — add one there first.",
+  hasMore: "More contacts match — keep typing to narrow it down.",
+  resultsLabel: "Zoho CRM contacts",
+  addTo: "To",
+  addCc: "Cc",
+  addedHint: "Pick To or Cc for each contact. You can add several of each.",
   attendeesLabel: "Who from ABR is joining?",
-  addPerson: "+ Add person",
+  addPerson: "+ Add a person from the CRM",
+  attendeesHint: "Everyone listed is invited to the meeting. Their calendars aren't checked.",
+  /** Why the CRM can't be used right now, by cause. */
+  crmIssue: {
+    not_connected: "Connect your Zoho account in My settings to use the CRM here.",
+    reconnect: "Zoho needs your approval again for CRM access.",
+    unavailable: "The Zoho CRM isn't available right now. Try again in a moment.",
+  },
+  openSettings: "Open My settings",
   durationLabel: "Duration",
   notesLabel: "Notes (optional)",
   notesPlaceholder:
-    "Agenda, preferred dates or times, time zone, location or meeting link, who is optional, background Celian should know",
-  submit: "Submit to Celian",
+    "Agenda, preferred dates or times, time zone, location or meeting link, who is optional, background the coordinator should know",
+  submit: "Submit to the coordinator",
   submitAndAnother: "Submit & start another",
   saveDraft: "Save draft",
   subjectRequired: "Give the meeting a subject before submitting.",
@@ -44,30 +69,6 @@ export const DURATION_OPTIONS = [
 
 export const DEFAULT_DURATION_MIN = 60;
 
-/**
- * Phase 1 stand-in for Zoho CRM search (COQL client lookup is a later phase — see
- * CLAUDE.md "Later phases" and docs/RESEARCH.md §10). Matched by domain or company name.
- */
-export const MOCK_CRM_DIRECTORY = [
-  {
-    domain: "northwind.co",
-    company: "Northwind Co.",
-    contacts: [
-      { name: "Daniel Price", email: "daniel@northwind.example" },
-      { name: "Maya Chen", email: "maya@northwind.example" },
-      { name: "Alex Kim", email: "alex@northwind.example" },
-    ],
-  },
-  {
-    domain: "brightpath.co",
-    company: "Brightpath",
-    contacts: [
-      { name: "Priya Nair", email: "priya@brightpath.example" },
-      { name: "Kevin Odera", email: "kevin@brightpath.example" },
-    ],
-  },
-] as const;
-
 export const DRAFT_CARD = {
   label: "New request (draft)",
   subtitle: (subject: string) => `${subject || "Untitled request"} · not submitted yet`,
@@ -77,26 +78,32 @@ export const REQUEST_DETAIL = {
   metaTitle: "Request",
   wireframe: "2-host-request-history.html",
   notFound: "This request doesn't exist or was removed.",
-  questionTitle: "Celian needs more information",
+  questionTitle: "The coordinator needs more information",
   replyTitle: "Your reply",
-  replyLabel: "Reply to Celian",
-  replyRequired: "Reply to Celian's question before resubmitting.",
-  updateLabel: "Update the request (changes are highlighted for Celian)",
+  editTitle: "Edit this request",
+  editHelp: "You can change this request until the coordinator marks the email as sent.",
+  noteLabel: "Note for the coordinator (optional)",
+  subjectLabel: "Subject",
+  notesLabel: "Notes",
+  replyLabel: "Reply to the coordinator",
+  replyRequired: "Reply to the coordinator's question before resubmitting.",
+  updateLabel: "Update the request (changes are highlighted for the coordinator)",
   toLabel: "To",
   ccLabel: "Cc",
   durationLabel: "Duration",
-  resubmit: "Resubmit to Celian",
-  resubmitHelp: (nextVersion: number) => `Saves as version ${nextVersion} and moves the request back to Celian.`,
+  resubmit: "Resubmit to the coordinator",
+  resubmitEdit: "Save changes and resubmit",
+  resubmitHelp: (nextVersion: number) => `Saves as version ${nextVersion} and moves the request back to the coordinator.`,
   historyTitle: "History",
-  historyFooter: "Every question, reply and change stays on this request, so you and Celian always see the same story.",
+  historyFooter: "Every question, reply and change stays on this request, so you and the coordinator always see the same story.",
 } as const;
 
 /** Status → what happens next, shown under History when there's no reply form (wireframe 2). */
 export const NEXT_ACTION: Record<string, string> = {
-  new: "With Celian",
+  new: "With the coordinator. You can still edit it until the email is sent.",
   needs_info: "Waiting for your reply",
-  updated: "With Celian",
-  email_sent: "Waiting on the client",
+  updated: "With the coordinator. You can still edit it until the email is sent.",
+  email_sent: "The email was sent, so this request is locked. Waiting on the client.",
 };
 
 /** RequestEvent.type → history line copy. {actor} and {message} are filled in by the component. */
@@ -104,8 +111,16 @@ export const EVENT_COPY: Record<string, string> = {
   submitted: "{actor} submitted the request",
   info_requested: "{actor} asked for more information",
   host_replied: '{actor} replied: "{message}"',
-  email_copied: "Celian copied the email",
-  marked_sent: "Celian marked the email as sent",
-  booked: "{actor} booked a time",
+  host_edited: "{actor} edited the request",
+  email_edited: "The coordinator edited the email",
+  email_copied: "The coordinator copied the email",
+  marked_sent: "The coordinator marked the email as sent",
+  booked: "{message} booked a time",
   booking_failed: "A booking attempt failed",
 } as const;
+
+/** Reads `?status=` from the URL: a known status, otherwise "all" (everything visible by default). */
+export function parseStatusFilter(value: string | string[] | undefined): string {
+  const key = Array.isArray(value) ? value[0] : value;
+  return REQUESTS_PAGE.filters.some((f) => f.key === key) ? (key as string) : "all";
+}
