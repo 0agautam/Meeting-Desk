@@ -1,7 +1,7 @@
 import "server-only";
 import type { Booking, BookingStatus } from "@/lib/types";
 import { tryGetCatalystApp } from "./catalystApp";
-import { formatDataStoreTime, parseDataStoreTime, zcqlLiteral } from "./dsHelpers";
+import { deleteRowsInBatches, formatDataStoreTime, parseDataStoreTime, zcqlLiteral } from "./dsHelpers";
 import { getStore, newId } from "./store";
 
 /**
@@ -95,6 +95,25 @@ export async function insertBookingInStore(booking: Omit<Booking, "id">): Promis
     if (/duplicate|unique/i.test(`${err instanceof Error ? err.message : ""} ${JSON.stringify(err)}`)) throw new SlotTakenError();
     throw err;
   }
+}
+
+/** Permanently removes every booking record of a host (failed and pending ones too); returns how many there were. The calendar events themselves are not touched. */
+export async function deleteBookingsForHostFromStore(hostId: string): Promise<number> {
+  const app = await tryGetCatalystApp();
+  if (!app) {
+    const store = getStore();
+    const before = store.bookings.length;
+    store.bookings = store.bookings.filter((b) => b.hostId !== hostId);
+    return before - store.bookings.length;
+  }
+  let removed = 0;
+  for (let round = 0; round < 50; round++) {
+    const rows = await app.zcql().executeZCQLQuery(`SELECT ROWID FROM ${TABLE} WHERE host_id = ${zcqlLiteral(hostId)}`);
+    if (rows.length === 0) break;
+    await deleteRowsInBatches(app, TABLE, rows.map((r) => String(r[TABLE].ROWID)));
+    removed += rows.length;
+  }
+  return removed;
 }
 
 export async function updateBookingInStore(

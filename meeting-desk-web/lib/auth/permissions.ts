@@ -32,7 +32,7 @@ export function homePathFor(user: WithRoles): string {
 /** No `role` means every signed-in person sees the item. */
 export const NAV_ITEMS: readonly { label: string; href: string; role?: StaffRole }[] = [
   { label: "My requests", href: "/requests", role: "host" },
-  { label: "Desk", href: "/desk", role: "coordinator" },
+  { label: "Meeting requests", href: "/desk", role: "coordinator" },
   { label: "Settings", href: "/settings", role: "admin" },
   { label: "My settings", href: "/account" },
 ];

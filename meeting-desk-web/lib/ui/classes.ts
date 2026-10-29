@@ -16,7 +16,9 @@ export const SIDEBAR = "flex w-[340px] shrink-0 flex-col gap-2.5 max-lg:w-full l
  */
 export const APP_SHELL = "flex flex-1 flex-col lg:h-[calc(100dvh-3.5rem)] lg:flex-none lg:overflow-hidden";
 export const SHELL_BODY = "flex w-full flex-1 gap-5 px-6 pb-5 max-lg:flex-col max-lg:px-4 lg:min-h-0";
-export const CARD = "block rounded-card border border-line bg-card px-3.5 py-3 text-body no-underline";
+export const CARD = "block rounded-card border border-line bg-card px-3.5 py-3 text-body no-underline hover:border-accent";
+/** The request that is open: tinted, accent border with a matching ring, so it stands out in the list. Not combined with CARD (their border colours would clash). */
+export const CARD_SELECTED = "block rounded-card border border-accent bg-accent-soft px-3.5 py-3 text-body no-underline ring-2 ring-inset ring-accent";
 
 // Type
 export const PAGE_TITLE = "m-0 font-serif text-[26px] font-semibold text-ink";

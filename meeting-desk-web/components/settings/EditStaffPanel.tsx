@@ -1,11 +1,12 @@
-import { deleteStaffMember, saveStaffSettings } from "@/app/(staff)/settings/actions";
+import { deleteStaffAndData, deleteStaffMember, saveStaffSettings } from "@/app/(staff)/settings/actions";
 import type { Staff } from "@/lib/types";
 import { BTN, BTN_PRIMARY, FIELD_LABEL, FIELD_SELECT } from "@/lib/ui/classes";
 import RolesField from "./RolesField";
 import { BUFFER_OPTIONS, CALENDAR_OPTIONS, SETTINGS_PAGE } from "./settingsContent";
 
 /** The fields of the Edit popup (roles, calendar, buffer), then the delete section; the popup frame and title come from TeamTable. */
-export default function EditStaffPanel({ staff, error, isSelf }: { staff: Staff; error?: string; isSelf: boolean }) {
+export default function EditStaffPanel({ staff, error, isSelf, data }: { staff: Staff; error?: string; isSelf: boolean; data: { requests: number; bookings: number } }) {
+  const hasData = data.requests > 0 || data.bookings > 0;
   return (
     <div className="flex flex-col gap-6">
       <form action={saveStaffSettings} className="flex flex-col gap-5">
@@ -24,10 +25,22 @@ export default function EditStaffPanel({ staff, error, isSelf }: { staff: Staff;
             </select>
           </div>
           <div>
-            <label className={FIELD_LABEL} htmlFor="bufferMin">
-              {SETTINGS_PAGE.bufferLabel}
+            <label className={FIELD_LABEL} htmlFor="bufferBeforeMin">
+              {SETTINGS_PAGE.bufferBeforeLabel}
             </label>
-            <select id="bufferMin" name="bufferMin" defaultValue={staff.bufferMin} className={FIELD_SELECT}>
+            <select id="bufferBeforeMin" name="bufferBeforeMin" defaultValue={staff.bufferBeforeMin} className={FIELD_SELECT}>
+              {BUFFER_OPTIONS.map((o) => (
+                <option key={o.minutes} value={o.minutes}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor="bufferAfterMin">
+              {SETTINGS_PAGE.bufferAfterLabel}
+            </label>
+            <select id="bufferAfterMin" name="bufferAfterMin" defaultValue={staff.bufferAfterMin} className={FIELD_SELECT}>
               {BUFFER_OPTIONS.map((o) => (
                 <option key={o.minutes} value={o.minutes}>
                   {o.label}
@@ -56,6 +69,32 @@ export default function EditStaffPanel({ staff, error, isSelf }: { staff: Staff;
       <div className="rounded-card border border-line bg-ground px-4 py-1">
         {isSelf ? (
           <p className="m-0 py-3 text-[13px] text-muted">{SETTINGS_PAGE.deleteSelf}</p>
+        ) : hasData ? (
+          <details>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center text-[13px] font-semibold text-attention">
+              {SETTINGS_PAGE.deleteDataTitle}
+            </summary>
+            <form action={deleteStaffAndData} className="flex flex-col gap-3 pb-4">
+              <input type="hidden" name="staffId" value={staff.id} />
+              <p role="alert" className="m-0 rounded-field bg-status-needs-info px-3 py-2 text-[13px] font-semibold text-attention">
+                {SETTINGS_PAGE.deleteDataWarning(staff.name, data.requests, data.bookings)}
+              </p>
+              <p className="m-0 text-[13px] text-body">{SETTINGS_PAGE.deleteDataKept}</p>
+              <p className="m-0 text-[13px] text-muted">{SETTINGS_PAGE.deleteDataKeepInstead}</p>
+              <label className="flex min-h-11 cursor-pointer items-start gap-2.5 text-[13px] text-ink">
+                <input type="checkbox" name="confirm" value="yes" required className="mt-0.5 h-5 w-5 shrink-0" />
+                <span>{SETTINGS_PAGE.deleteDataConfirm}</span>
+              </label>
+              <div>
+                <button
+                  type="submit"
+                  className="inline-flex h-11 cursor-pointer items-center rounded-field border border-attention bg-attention px-4 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  {SETTINGS_PAGE.deleteDataButton}
+                </button>
+              </div>
+            </form>
+          </details>
         ) : (
           <details>
             <summary className="flex min-h-11 cursor-pointer list-none items-center text-[13px] font-semibold text-attention">

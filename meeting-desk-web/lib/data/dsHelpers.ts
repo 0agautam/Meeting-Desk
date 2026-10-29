@@ -49,6 +49,13 @@ export function zcqlLiteral(value: string): string {
   return `'${value}'`;
 }
 
+type RowDeleter = { datastore(): { table(name: string): { deleteRows(ids: string[]): Promise<unknown> } } };
+
+/** Removes rows in batches (Data Store takes a limited number of ids per call). */
+export async function deleteRowsInBatches(app: RowDeleter, table: string, ids: string[]): Promise<void> {
+  for (let i = 0; i < ids.length; i += 100) await app.datastore().table(table).deleteRows(ids.slice(i, i + 100));
+}
+
 /** Safe JSON parse for the text columns that hold arrays/objects. */
 export function parseJsonColumn<T>(value: unknown, fallback: T): T {
   if (typeof value !== "string" || value === "") return fallback;

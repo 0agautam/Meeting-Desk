@@ -11,7 +11,7 @@ import type {
 } from "@/lib/types";
 import { tryGetCatalystApp } from "./catalystApp";
 import { parseConstraints } from "@/lib/booking/constraints";
-import { parseDataStoreTime, parseJsonColumn, zcqlLiteral } from "./dsHelpers";
+import { deleteRowsInBatches, parseDataStoreTime, parseJsonColumn, zcqlLiteral } from "./dsHelpers";
 import { getStore, newId } from "./store";
 
 /**
@@ -152,7 +152,7 @@ export async function updateRequestFieldsInStore(
 
   // Attendees are compared by email and shown by name.
   if (patch.attendees) {
-    const emails = (list: Attendee[]) => list.map((x) => x.email.toLowerCase()).sort().join("|");
+    const emails = (list: Attendee[]) => list.map((x) => `${x.email.toLowerCase()}:${x.required === false ? "optional" : "required"}`).sort().join("|");
     if (emails(current.attendees) !== emails(patch.attendees)) {
       changes.attendees = { from: current.attendees.map((x) => x.name), to: patch.attendees.map((x) => x.name) };
     }
@@ -236,7 +236,41 @@ export async function setEmailDraftInStore(id: string, draft: EmailDraft | null)
   return rowToRequest(await app.datastore().table(REQUESTS).updateRow({ ROWID: id, email_draft: draft ? JSON.stringify(draft) : "" }));
 }
 
+/** Permanently removes requests (their history and bookings are removed separately). */
+export async function deleteRequestsFromStore(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const app = await tryGetCatalystApp();
+  if (!app) {
+    const store = getStore();
+    store.requests = store.requests.filter((r) => !ids.includes(r.id));
+    return;
+  }
+  await deleteRowsInBatches(app, REQUESTS, ids);
+}
+
 // ── History ──────────────────────────────────────────────────────────────
+/** Permanently removes every history line of the given requests; returns how many there were. */
+export async function deleteEventsForRequestsFromStore(requestIds: string[]): Promise<number> {
+  const app = await tryGetCatalystApp();
+  if (!app) {
+    const store = getStore();
+    const before = store.events.length;
+    store.events = store.events.filter((e) => !requestIds.includes(e.requestId));
+    return before - store.events.length;
+  }
+  let removed = 0;
+  for (const requestId of requestIds) {
+    // A query returns a limited number of rows, so keep going until none are left (capped, so it can't loop forever).
+    for (let round = 0; round < 50; round++) {
+      const rows = await app.zcql().executeZCQLQuery(`SELECT ROWID FROM ${EVENTS} WHERE request_id = ${zcqlLiteral(requestId)}`);
+      if (rows.length === 0) break;
+      await deleteRowsInBatches(app, EVENTS, rows.map((r) => String(r[EVENTS].ROWID)));
+      removed += rows.length;
+    }
+  }
+  return removed;
+}
+
 export async function listEventsFromStore(requestId: string): Promise<RequestEvent[]> {
   const app = await tryGetCatalystApp();
   let events: RequestEvent[];

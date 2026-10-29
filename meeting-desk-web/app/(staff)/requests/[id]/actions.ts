@@ -7,7 +7,7 @@ import { isAdmin } from "@/lib/auth/permissions";
 import { releaseHolds } from "@/lib/booking/holds";
 import { addEvent, getRequest, listStaff, updateRequestFields } from "@/lib/data";
 import { parseAttendees, parseEmailList } from "@/lib/requests/formParsing";
-import type { RequestStatus } from "@/lib/types";
+import { isRequired, type RequestStatus } from "@/lib/types";
 
 /** Statuses where the host can still change the request: up to the moment the coordinator marks the email as sent. */
 const EDITABLE: RequestStatus[] = ["new", "needs_info", "updated"];
@@ -47,7 +47,7 @@ export async function resubmitRequest(formData: FormData) {
     durationMin === request.durationMin &&
     sameList(to, request.to) &&
     sameList(cc, request.cc) &&
-    sameSet(attendees.map((a) => a.email), request.attendees.map((a) => a.email));
+    sameSet(attendees.map((a) => `${a.email}:${isRequired(a)}`), request.attendees.map((a) => `${a.email}:${isRequired(a)}`));
   if (nothingChanged && !message) redirect(`/requests/${requestId}`);
 
   // The edit throws away the offered times, so their grey holds come off the host's calendar too.

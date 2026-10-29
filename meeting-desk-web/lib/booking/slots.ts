@@ -13,7 +13,16 @@ export const DEFAULT_BOOKING_DURATION_MIN = 30;
 export type BusyInterval = { startTime: string; endTime: string; eventId?: string; title?: string };
 
 /** One person's calendar busy time and the buffer they want around it. */
-export type PersonBusy = { bufferMin: number; busy: BusyInterval[] };
+/** A person's busy time and the buffer they keep free before a meeting starts and after it ends. */
+export type PersonBusy = { bufferBeforeMin: number; bufferAfterMin: number; busy: BusyInterval[] };
+
+/**
+ * A busy stretch, widened by one person's buffers into the stretch a meeting may not touch: a meeting must start at least
+ * `before` minutes after the busy time ends, and end at least `after` minutes before the next busy time starts.
+ */
+function widened(startMs: number, endMs: number, buffer: Pick<PersonBusy, "bufferBeforeMin" | "bufferAfterMin">): { start: number; end: number } {
+  return { start: startMs - buffer.bufferAfterMin * 60_000, end: endMs + buffer.bufferBeforeMin * 60_000 };
+}
 
 /** What a calendar read needs: the window, and the person's time zone and working hours (a day off blocks those hours). */
 export type BusyWindow = { startUtc: string; endUtc: string; timeZone: string; workHours: { start: string; end: string } };
@@ -105,18 +114,14 @@ export function listDaySlots(
   durationMin = DEFAULT_BOOKING_DURATION_MIN,
   busyIntervals: BusyInterval[] = [],
 ): { startUtc: string; endUtc: string; label: string }[] {
-  const step = durationMin + host.bufferMin;
+  const step = durationMin + Math.max(host.bufferBeforeMin, host.bufferAfterMin);
   const [startH, startM] = host.workingHours.start.split(":").map(Number);
   const [endH, endM] = host.workingHours.end.split(":").map(Number);
   const dayStart = startH * 60 + startM;
   const dayEnd = endH * 60 + endM;
   const taken = new Set(existingBookings.filter((b) => b.status !== "failed").map((b) => b.startUtc));
 
-  const bufferMs = host.bufferMin * 60_000;
-  const widenedBusy = busyIntervals.map((b) => ({
-    start: new Date(b.startTime).getTime() - bufferMs,
-    end: new Date(b.endTime).getTime() + bufferMs,
-  }));
+  const widenedBusy = busyIntervals.map((b) => widened(new Date(b.startTime).getTime(), new Date(b.endTime).getTime(), host));
 
   const slots: { startUtc: string; endUtc: string; label: string }[] = [];
   for (let minutes = dayStart; minutes + durationMin <= dayEnd; minutes += step) {
@@ -178,7 +183,6 @@ export function suggestSlots(
   const minNoticeHours = opts.minNoticeHours ?? (constraints?.urgency === "today" ? 2 : 4);
   const notBefore = constraints?.notBeforeTime ? toMinutes(constraints.notBeforeTime) : null;
   const notAfter = constraints?.notAfterTime ? toMinutes(constraints.notAfterTime) : null;
-  const bufferMs = host.bufferMin * 60_000;
   const earliestStartMs = now.getTime() + minNoticeHours * 3_600_000;
 
   const blocked = [
@@ -186,11 +190,9 @@ export function suggestSlots(
     ...opts.bookings
       .filter((b) => b.status !== "failed")
       .map((b) => ({ start: new Date(b.startUtc).getTime(), end: new Date(b.endUtc).getTime() })),
-  ].map((b) => ({ start: b.start - bufferMs, end: b.end + bufferMs }));
+  ].map((b) => widened(b.start, b.end, host));
   for (const person of opts.attendeeBusy ?? []) {
-    for (const b of person.busy) {
-      blocked.push({ start: new Date(b.startTime).getTime() - person.bufferMin * 60_000, end: new Date(b.endTime).getTime() + person.bufferMin * 60_000 });
-    }
+    for (const b of person.busy) blocked.push(widened(new Date(b.startTime).getTime(), new Date(b.endTime).getTime(), person));
   }
 
   const [startH, startM] = host.workingHours.start.split(":").map(Number);

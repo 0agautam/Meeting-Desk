@@ -21,7 +21,9 @@ export type Staff = {
   /** One or more of host / coordinator / admin. Admin can do everything. Stored comma-separated in Data Store. */
   roles: StaffRole[];
   calendarProvider: CalendarProvider | null;
-  bufferMin: number;
+  /** Minutes kept free before a meeting starts / after it ends. */
+  bufferBeforeMin: number;
+  bufferAfterMin: number;
   workingHours: WorkingHours;
   timezone: string;
   /** Public booking link: /book/<slug> */
@@ -30,12 +32,20 @@ export type Staff = {
 
 export type RequestStatus = "new" | "needs_info" | "updated" | "email_sent" | "booked";
 
-/** An ABR person joining the meeting, picked from the CRM's users. Just invited: no required/optional, calendar not checked. */
+/**
+ * An ABR person joining the meeting, picked from the CRM's users. Everyone gets the grey hold and the invite;
+ * only required people's calendars decide which times are offered. Missing `required` means required.
+ */
 export type Attendee = {
   name: string;
   email: string;
   crmUserId?: string;
+  required?: boolean;
 };
+
+export function isRequired(attendee: Pick<Attendee, "required">): boolean {
+  return attendee.required !== false;
+}
 
 /** A concrete time the coordinator offered the client for one request. */
 export type OfferedSlot = {

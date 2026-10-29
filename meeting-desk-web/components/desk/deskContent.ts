@@ -2,7 +2,7 @@ import type { MeetingRequest, OfferedSlot, Staff } from "@/lib/types";
 
 /** Copy for the coordinator's desk (wireframe 3). */
 export const DESK_PAGE = {
-  metaTitle: "Desk",
+  metaTitle: "Meeting requests",
   searchLabel: "Search requests",
   searchPlaceholder: "Search client, host, subject",
   wireframe: "3-celian-desk.html",

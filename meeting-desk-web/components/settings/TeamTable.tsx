@@ -9,7 +9,22 @@ import { BTN_PRIMARY, PAGE_LEDE, PAGE_TITLE, PANEL } from "@/lib/ui/classes";
 import { CALENDAR_LABEL, CALENDAR_PILL_CLASS, SETTINGS_PAGE } from "./settingsContent";
 
 /** Wireframe 4: the team table, plus the Edit or Add panel for whichever row is active. */
-export default function TeamTable({ staff, currentUserId, editId, showAdd, error }: { staff: Staff[]; currentUserId: string; editId?: string; showAdd?: boolean; error?: string }) {
+export default function TeamTable({
+  staff,
+  currentUserId,
+  editId,
+  editData,
+  showAdd,
+  error,
+}: {
+  staff: Staff[];
+  currentUserId: string;
+  editId?: string;
+  /** What deleting the person being edited would also remove (counted by the page). */
+  editData: { requests: number; bookings: number };
+  showAdd?: boolean;
+  error?: string;
+}) {
   const editing = editId ? staff.find((s) => s.id === editId) : undefined;
 
   return (
@@ -50,7 +65,7 @@ export default function TeamTable({ staff, currentUserId, editId, showAdd, error
                   <span className="text-muted">–</span>
                 )}
               </td>
-              <td className="px-2 py-3">{s.roles.includes("host") ? `${s.bufferMin} min` : <span className="text-muted">–</span>}</td>
+              <td className="px-2 py-3">{s.roles.includes("host") ? SETTINGS_PAGE.bufferCell(s.bufferBeforeMin, s.bufferAfterMin) : <span className="text-muted">–</span>}</td>
               <td className="px-2 py-3">
                 {s.roles.includes("host") ? <Link href={`/book/${s.slug}`}>/book/{s.slug}</Link> : <span className="text-muted">–</span>}
               </td>
@@ -75,7 +90,7 @@ export default function TeamTable({ staff, currentUserId, editId, showAdd, error
         </Modal>
       ) : editing ? (
         <Modal title={SETTINGS_PAGE.editTitle(editing.name)} subtitle={editing.email} closeHref="/settings" closeLabel={SETTINGS_PAGE.close}>
-          <EditStaffPanel staff={editing} error={error} isSelf={editing.id === currentUserId} />
+          <EditStaffPanel staff={editing} error={error} isSelf={editing.id === currentUserId} data={editData} />
         </Modal>
       ) : null}
     </section>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import StatusBadge from "@/components/ui/StatusBadge";
 import type { RequestDraft } from "@/lib/data/store";
 import type { MeetingRequest } from "@/lib/types";
-import { BTN_PRIMARY, CARD, CARD_DRAFT, CARD_TITLE, CHIP, CHIP_ACTIVE, META, SECTION_TITLE, SIDEBAR } from "@/lib/ui/classes";
+import { BTN_PRIMARY, CARD, CARD_DRAFT, CARD_SELECTED, CARD_TITLE, CHIP, CHIP_ACTIVE, META, SECTION_TITLE, SIDEBAR } from "@/lib/ui/classes";
 import { DRAFT_CARD, REQUESTS_PAGE } from "./requestsContent";
 
 /** Left column of wireframes 1 and 2: the host's requests with status. Server component. */
@@ -63,7 +63,7 @@ export default function RequestsSidebar({
               <Link
                 href={`/requests/${r.id}${query}`}
                 aria-current={isCurrent ? "page" : undefined}
-                className={`${CARD} hover:border-accent ${isCurrent ? "border-2 border-accent" : ""}`}
+                className={isCurrent ? CARD_SELECTED : CARD}
               >
                 <StatusBadge status={r.status} />
                 <div className={`${CARD_TITLE} mt-1.5`}>{r.subject}</div>

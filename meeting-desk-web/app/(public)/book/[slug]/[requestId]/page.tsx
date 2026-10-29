@@ -24,9 +24,9 @@ async function openSlots(request: MeetingRequest, host: Staff): Promise<OfferedS
   if (slots.length === 0) return slots;
 
   try {
-    const { people } = calendarPeople(request, host, await listStaff());
+    const { checked } = calendarPeople(request, host, await listStaff());
     const busy = await busyForPeople(
-      people,
+      checked,
       {
         startUtc: new Date(now).toISOString(),
         endUtc: new Date(Math.max(...slots.map((s) => Date.parse(s.endUtc))) + 3_600_000).toISOString(),

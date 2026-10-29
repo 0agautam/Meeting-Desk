@@ -52,6 +52,7 @@ export async function parseAttendees(formData: FormData, hostEmail: string, user
       name: known?.name ?? ((typeof picked.name === "string" ? picked.name.trim().slice(0, 100) : "") || email),
       email: known?.email ?? email,
       ...(known?.id ? { crmUserId: known.id } : {}),
+      required: (picked as { required?: unknown }).required !== false,
     });
   }
   return attendees;

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { searchCrmContacts } from "@/app/(staff)/requests/actions";
 import type { CrmContact } from "@/lib/crm/zoho";
@@ -86,11 +85,6 @@ export default function RecipientPicker({ initialTo = [], initialCc = [] }: { in
   );
 
   const hasResults = !!currentSearch && currentSearch.contacts.length > 0;
-  const toLink = (text: string) => (
-    <Link href="/account" className="font-semibold underline">
-      {text}
-    </Link>
-  );
 
   return (
     <div>
@@ -117,8 +111,7 @@ export default function RecipientPicker({ initialTo = [], initialCc = [] }: { in
                 ? (
                     <>
                       {NEW_REQUEST_FORM.crmIssue[currentSearch.issue ?? "unavailable"]}
-                      {currentSearch.detail ? ` (Zoho said: ${currentSearch.detail})` : ""}{" "}
-                      {currentSearch.issue === "not_connected" || currentSearch.issue === "reconnect" ? toLink(NEW_REQUEST_FORM.openSettings) : null}
+                      {currentSearch.detail ? ` (Zoho said: ${currentSearch.detail})` : ""}
                     </>
                   )
                 : currentSearch && currentSearch.contacts.length === 0 && !showTypedEmail
@@ -158,11 +151,7 @@ export default function RecipientPicker({ initialTo = [], initialCc = [] }: { in
         </ul>
       ) : null}
       {currentSearch?.hasMore ? <p className={`${META} mt-1.5`}>{NEW_REQUEST_FORM.hasMore}</p> : null}
-      {currentSearch?.leadsUnavailable ? (
-        <p className={`${META} mt-1.5`}>
-          {NEW_REQUEST_FORM.leadsUnavailable} {toLink(NEW_REQUEST_FORM.openSettings)}
-        </p>
-      ) : null}
+      {currentSearch?.leadsUnavailable ? <p className={`${META} mt-1.5`}>{NEW_REQUEST_FORM.leadsUnavailable}</p> : null}
       {trimmedQuery.length === 0 ? <p className={`${META} mt-1.5`}>{NEW_REQUEST_FORM.clientHelp}</p> : null}
 
       {to.length + cc.length > 0 ? (

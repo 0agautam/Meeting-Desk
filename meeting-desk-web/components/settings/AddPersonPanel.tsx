@@ -1,4 +1,5 @@
 import { addStaff } from "@/app/(staff)/settings/actions";
+import { DEFAULT_BUFFER_MIN } from "@/lib/config";
 import { BTN, BTN_PRIMARY, FIELD_INPUT, FIELD_LABEL, FIELD_SELECT } from "@/lib/ui/classes";
 import RolesField from "./RolesField";
 import { BUFFER_OPTIONS, CALENDAR_OPTIONS, SETTINGS_PAGE } from "./settingsContent";
@@ -33,10 +34,22 @@ export default function AddPersonPanel({ error }: { error?: string }) {
           </select>
         </div>
         <div>
-          <label className={FIELD_LABEL} htmlFor="bufferMin">
-            {SETTINGS_PAGE.bufferLabel}
+          <label className={FIELD_LABEL} htmlFor="bufferBeforeMin">
+            {SETTINGS_PAGE.bufferBeforeLabel}
           </label>
-          <select id="bufferMin" name="bufferMin" defaultValue={15} className={FIELD_SELECT}>
+          <select id="bufferBeforeMin" name="bufferBeforeMin" defaultValue={DEFAULT_BUFFER_MIN} className={FIELD_SELECT}>
+            {BUFFER_OPTIONS.map((o) => (
+              <option key={o.minutes} value={o.minutes}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={FIELD_LABEL} htmlFor="bufferAfterMin">
+            {SETTINGS_PAGE.bufferAfterLabel}
+          </label>
+          <select id="bufferAfterMin" name="bufferAfterMin" defaultValue={DEFAULT_BUFFER_MIN} className={FIELD_SELECT}>
             {BUFFER_OPTIONS.map((o) => (
               <option key={o.minutes} value={o.minutes}>
                 {o.label}

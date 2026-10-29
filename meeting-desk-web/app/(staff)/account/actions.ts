@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { BUFFER_OPTIONS } from "@/components/settings/settingsContent";
-import { requireUser } from "@/lib/auth/current-user";
+import { requireRole, requireUser } from "@/lib/auth/current-user";
 import { deleteCalendarAccount, getCalendarAccount } from "@/lib/calendar/accountStore";
 import { GOOGLE_STATE_COOKIE, buildGoogleAuthorizeUrl, googleClient } from "@/lib/calendar/googleOauth";
 import { revokeCalendarAccount } from "@/lib/calendar/revoke";
 import { ZOHO_CRM_SCOPES, ZOHO_PURPOSE_COOKIE, ZOHO_STATE_COOKIE, buildAuthorizeUrl, revokeRefreshToken, zohoClient } from "@/lib/calendar/zohoOauth";
-import { deleteCrmAccount, getCrmAccount } from "@/lib/crm/accountStore";
+import { ORGANISATION_CRM_ID, deleteCrmAccount, getCrmAccount } from "@/lib/crm/accountStore";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
 import type { CalendarProvider } from "@/lib/types";
@@ -53,11 +53,14 @@ export async function connectGoogle() {
   redirect(buildGoogleAuthorizeUrl({ clientId: client.clientId, redirectUri: `${await getBaseUrl()}/api/google/callback`, state, loginHint: user.email }));
 }
 
-/** "Connect Zoho CRM" — a CRM-only approval, for people whose calendar isn't Zoho. Comes back through the same Zoho address. */
-export async function connectZohoCrm() {
-  await requireUser();
+/**
+ * "Connect Zoho CRM" (admins, in Settings) — the organisation's one shared CRM approval, which everyone's CRM searches use.
+ * Comes back through the same Zoho address; the admin may approve with a shared Zoho account instead of their own.
+ */
+export async function connectOrganisationCrm() {
+  await requireRole("admin");
   const client = zohoClient();
-  if (!client) redirect("/account?crm=not-configured");
+  if (!client) redirect("/settings?crm=not-configured");
 
   const state = await startState(ZOHO_STATE_COOKIE, "/api/zoho");
   (await cookies()).set(ZOHO_PURPOSE_COOKIE, "crm", {
@@ -82,16 +85,16 @@ export async function disconnectCalendar() {
   redirect("/account?zoho=disconnected");
 }
 
-/** "Disconnect" for the separate CRM approval. */
-export async function disconnectCrm() {
-  const user = await requireUser();
-  const account = await getCrmAccount(user.id);
+/** "Disconnect" for the organisation's CRM approval (admins). */
+export async function disconnectOrganisationCrm() {
+  await requireRole("admin");
+  const account = await getCrmAccount(ORGANISATION_CRM_ID);
   if (account) {
     await revokeRefreshToken(account.refreshToken);
-    await deleteCrmAccount(user.id);
+    await deleteCrmAccount(ORGANISATION_CRM_ID);
   }
-  revalidatePath("/account");
-  redirect("/account?crm=disconnected");
+  revalidatePath("/settings");
+  redirect("/settings?crm=disconnected");
 }
 
 /** Changing provider drops the old connection: the person has to approve the new one (one provider at a time). */
@@ -112,13 +115,15 @@ export async function saveCalendarProvider(formData: FormData) {
   redirect("/account");
 }
 
-/** A host's own buffer between meetings. */
+/** A host's own buffers: time kept free before a meeting starts and after it ends. */
 export async function saveMyBuffer(formData: FormData) {
   const user = await requireUser();
-  const bufferMin = Number(formData.get("bufferMin"));
-  if (!user.roles.includes("host") || !BUFFER_OPTIONS.some((o) => o.minutes === bufferMin)) redirect("/account");
+  const bufferBeforeMin = Number(formData.get("bufferBeforeMin"));
+  const bufferAfterMin = Number(formData.get("bufferAfterMin"));
+  const known = (minutes: number) => BUFFER_OPTIONS.some((o) => o.minutes === minutes);
+  if (!user.roles.includes("host") || !known(bufferBeforeMin) || !known(bufferAfterMin)) redirect("/account");
 
-  await updateStaff(user.id, { bufferMin });
+  await updateStaff(user.id, { bufferBeforeMin, bufferAfterMin });
   revalidatePath("/account");
   redirect("/account?saved=buffer");
 }

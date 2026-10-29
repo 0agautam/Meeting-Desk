@@ -11,7 +11,10 @@ export const SETTINGS_PAGE = {
   edit: "Edit",
   editTitle: (name: string) => `Edit ${name}`,
   calendarLabel: "Calendar",
-  bufferLabel: "Buffer between meetings",
+  bufferBeforeLabel: "Buffer before meetings",
+  bufferAfterLabel: "Buffer after meetings",
+  /** The team table cell: one number when both sides match. */
+  bufferCell: (before: number, after: number) => (before === after ? `${before} min` : `${before} before · ${after} after`),
   save: "Save",
   cancel: "Cancel",
   addTitle: "Add a team member",
@@ -23,6 +26,7 @@ export const SETTINGS_PAGE = {
     duplicate: "That email is already on the team.",
     self: "You can't delete your own account.",
     "has-requests": "This person still has meeting requests. Remove their host role instead, so the requests keep their history.",
+    confirm: "Tick the box to confirm before deleting.",
   } as Record<string, string>,
   close: "Close",
   deleteTitle: "Delete this person",
@@ -30,6 +34,13 @@ export const SETTINGS_PAGE = {
     `${name} will be removed from the team, signed out everywhere, and their calendar and CRM approvals cancelled. This can't be undone.`,
   deleteButton: "Delete person",
   deleteSelf: "You can't delete your own account.",
+  deleteDataTitle: "Delete this person and all their data",
+  deleteDataWarning: (name: string, requests: number, bookings: number) =>
+    `${name} has ${requests} meeting ${requests === 1 ? "request" : "requests"} and ${bookings} booking ${bookings === 1 ? "record" : "records"}. Deleting them permanently removes the person, those requests with their full history, and the booking records. This can't be undone.`,
+  deleteDataKept: "Meetings already booked stay in the calendars. Their grey tentative holds are taken off the calendars.",
+  deleteDataKeepInstead: "To keep the history, remove their Host role instead and save.",
+  deleteDataConfirm: "I understand this permanently deletes the person and all their data.",
+  deleteDataButton: "Delete person and all their data",
   nameLabel: "Name",
   emailLabel: "Email",
 } as const;
@@ -55,6 +66,6 @@ export const CALENDAR_OPTIONS = [
 
 export const ROLE_HELP = {
   host: "Submits meeting requests, sees only their own, sets their buffer and calendar.",
-  coordinator: "Works the desk: sees every request and writes the client email.",
+  coordinator: "Works the meeting requests: sees every request and writes the client email.",
   admin: "Can do everything, including this team list.",
 } as const;

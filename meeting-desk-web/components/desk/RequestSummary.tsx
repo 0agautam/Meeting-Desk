@@ -50,6 +50,7 @@ export default function RequestSummary({
             <span key={a.email}>
               {", "}
               {a.name}
+              {a.required === false ? <span className="text-muted"> (optional)</span> : null}
             </span>
           ))}
         </dd>

@@ -3,13 +3,16 @@ import { tryGetCatalystApp } from "@/lib/data/catalystApp";
 import { zcqlLiteral } from "@/lib/data/dsHelpers";
 
 /**
- * A person's own Zoho CRM approval, in the Data Store table "CrmAccounts" (staff_id [unique],
- * refresh_token [encrypted text], account_email, status). It exists for people whose calendar is NOT
- * Zoho (their calendar approval can't double as CRM access); Zoho-calendar users' calendar approval
- * already covers the CRM. Falls back to memory when not running on Catalyst.
+ * Zoho CRM approvals, in the Data Store table "CrmAccounts" (staff_id [unique], refresh_token [encrypted text],
+ * account_email, status). The organisation's one shared connection, made by an admin in Settings, is the row whose
+ * staff_id is ORGANISATION_CRM_ID; everyone's CRM searches use it. Older per-person rows (people whose calendar is
+ * not Zoho) are only a fallback. Falls back to memory when not running on Catalyst.
  */
 
 const TABLE = "CrmAccounts";
+
+/** The staff_id of the organisation's shared CRM connection. Real staff ids are numeric row ids, so it can't clash. */
+export const ORGANISATION_CRM_ID = "organisation";
 
 export type CrmAccount = { staffId: string; refreshToken: string; accountEmail: string; status: "connected" | "error" };
 

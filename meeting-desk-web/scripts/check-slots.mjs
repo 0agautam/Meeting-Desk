@@ -9,7 +9,7 @@ const m = { exports: {} };
 new Function("module", "exports", out)(m, m.exports); // slots.ts has no runtime imports
 const { listAvailableDays, suggestSlots, allDayBusy } = m.exports;
 
-const host = { timezone: "America/Toronto", bufferMin: 15, workingHours: { days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00" } };
+const host = { timezone: "America/Toronto", bufferBeforeMin: 15, bufferAfterMin: 15, workingHours: { days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00" } };
 const at = (iso) => new Date(`${iso}-04:00`); // Toronto is UTC-4 until Nov 1
 
 // Day rule: skip today and the next working day.
@@ -39,7 +39,7 @@ slots = suggestSlots(host, { ...args, busy: [wed] });
 assert.equal(slots[0].startUtc, "2026-10-29T13:00:00.000Z", "all-day block skips Wednesday");
 
 // An invited teammate busy 9:00-10:00 Wednesday pushes the offer later, with THEIR buffer (30 min).
-const mate = { bufferMin: 30, busy: [{ startTime: "2026-10-28T13:00:00Z", endTime: "2026-10-28T14:00:00Z" }] };
+const mate = { bufferBeforeMin: 30, bufferAfterMin: 30, busy: [{ startTime: "2026-10-28T13:00:00Z", endTime: "2026-10-28T14:00:00Z" }] };
 slots = suggestSlots(host, { ...args, busy: [], attendeeBusy: [mate] });
 assert.equal(slots[0].startUtc, "2026-10-28T14:30:00.000Z", "10:30 Toronto = busy end + 30 min buffer");
 
@@ -54,5 +54,17 @@ slots = suggestSlots(host, { ...args, busy: [], constraints: withUrgency("today"
 assert.equal(slots[0].startUtc, "2026-10-26T16:00:00.000Z", "today from 12:00 Toronto");
 slots = suggestSlots(host, { ...args, busy: [], constraints: withUrgency("soon") });
 assert.equal(slots[0].startUtc, "2026-10-27T13:00:00.000Z", "soon -> Tuesday 9:00");
+
+// Separate buffers: a teammate busy 9:00-10:00 who wants 0 minutes before and 60 after a meeting.
+// "Before" keeps time free after the busy block ends (0 -> 10:00 is fine); "after" keeps time free before the next busy block starts.
+const early = { bufferBeforeMin: 0, bufferAfterMin: 60, busy: [{ startTime: "2026-10-28T13:00:00Z", endTime: "2026-10-28T14:00:00Z" }] };
+slots = suggestSlots(host, { ...args, busy: [], attendeeBusy: [early] });
+assert.equal(slots[0].startUtc, "2026-10-28T14:00:00.000Z", "before = 0: can start right when the busy block ends (10:00 Toronto)");
+const lateBusy = { bufferBeforeMin: 0, bufferAfterMin: 60, busy: [{ startTime: "2026-10-28T15:00:00Z", endTime: "2026-10-28T16:00:00Z" }] };
+slots = suggestSlots(host, { ...args, busy: [], attendeeBusy: [lateBusy] });
+assert.equal(slots[0].startUtc, "2026-10-28T13:00:00.000Z", "9:00-9:30 ends 90 min before an 11:00 block: free");
+const tight = { bufferBeforeMin: 0, bufferAfterMin: 60, busy: [{ startTime: "2026-10-28T13:30:00Z", endTime: "2026-10-28T14:30:00Z" }] };
+slots = suggestSlots(host, { ...args, busy: [], attendeeBusy: [tight] });
+assert.equal(slots[0].startUtc, "2026-10-28T14:30:00.000Z", "a 9:30 block with 60 after: 9:00-9:30 is too close, so it starts at 10:30 (busy end + 0 before)");
 
 console.log("all checks passed");

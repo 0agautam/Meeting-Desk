@@ -12,7 +12,7 @@ import {
   revokeRefreshToken,
   zohoClient,
 } from "@/lib/calendar/zohoOauth";
-import { saveCrmAccount } from "@/lib/crm/accountStore";
+import { ORGANISATION_CRM_ID, saveCrmAccount } from "@/lib/crm/accountStore";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
 
@@ -27,9 +27,10 @@ function sameText(a: string, b: string): boolean {
 /**
  * Where Zoho sends the browser back after the person approves. Only accepts the return if
  * (1) the person is signed in here, (2) the state value matches the one we started with, and
- * (3) the Zoho account that approved has the same email as their team-list entry — otherwise
- * the permission is cancelled and nothing is saved. The same address serves the calendar approval
- * and the CRM-only approval (for people whose calendar is Google); a cookie says which one this is.
+ * (3) for a calendar approval, the Zoho account that approved has the same email as their team-list
+ * entry — otherwise the permission is cancelled and nothing is saved. The same address serves the calendar
+ * approval and the organisation's CRM approval (admins only, saved under the shared "organisation" row);
+ * a cookie says which one this is.
  */
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -43,8 +44,10 @@ export async function GET(request: Request) {
   // (a lingering "crm" note once made the next calendar approval be saved as a CRM-only one).
   jar.delete({ name: ZOHO_STATE_COOKIE, path: "/api/zoho" });
   jar.delete({ name: ZOHO_PURPOSE_COOKIE, path: "/api/zoho" });
-  const back = crmOnly ? "/account?crm=" : "/account?zoho=";
+  const back = crmOnly ? "/settings?crm=" : "/account?zoho=";
 
+  // The organisation's CRM connection is the admins' to make.
+  if (crmOnly && !user.roles.includes("admin")) redirect("/");
   if (!expectedState || !sameText(params.get("state") ?? "", expectedState)) redirect(`${back}state`);
   if (params.get("error")) redirect(`${back}denied`);
   const code = params.get("code");
@@ -59,12 +62,13 @@ export async function GET(request: Request) {
     const tokens = await exchangeCode({ code, redirectUri: `${await getBaseUrl()}/api/zoho/callback`, ...client });
     const approvedEmail = await fetchApprovedEmail(tokens.accessToken);
 
-    if (approvedEmail.toLowerCase() !== user.email.toLowerCase()) {
+    if (crmOnly) {
+      // Any Zoho account may approve here (a shared admin account is fine), so the email isn't compared with the admin's own.
+      await saveCrmAccount({ staffId: ORGANISATION_CRM_ID, refreshToken: tokens.refreshToken, accountEmail: approvedEmail, status: "connected" });
+      outcome = "connected";
+    } else if (approvedEmail.toLowerCase() !== user.email.toLowerCase()) {
       await revokeRefreshToken(tokens.refreshToken);
       outcome = `mismatch&as=${encodeURIComponent(approvedEmail)}`;
-    } else if (crmOnly) {
-      await saveCrmAccount({ staffId: user.id, refreshToken: tokens.refreshToken, accountEmail: approvedEmail, status: "connected" });
-      outcome = "connected";
     } else {
       await saveCalendarAccount({
         staffId: user.id,

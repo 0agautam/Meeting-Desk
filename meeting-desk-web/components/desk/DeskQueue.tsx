@@ -1,7 +1,7 @@
 import Link from "next/link";
 import StatusBadge from "@/components/ui/StatusBadge";
 import type { MeetingRequest, Staff } from "@/lib/types";
-import { CARD, CARD_TITLE, META, SIDEBAR } from "@/lib/ui/classes";
+import { CARD, CARD_SELECTED, CARD_TITLE, META, SIDEBAR } from "@/lib/ui/classes";
 import { formatAgo } from "@/lib/ui/formatDateTime";
 
 /** Left queue of wireframe 3. Server component. */
@@ -27,7 +27,7 @@ export default function DeskQueue({
             <Link
               href={`/desk/${r.id}${query}`}
               aria-current={r.id === activeId ? "page" : undefined}
-              className={`${CARD} hover:border-accent ${r.id === activeId ? "border-2 border-accent" : ""}`}
+              className={r.id === activeId ? CARD_SELECTED : CARD}
             >
               <StatusBadge status={r.status} />
               <div className={`${CARD_TITLE} mt-1`}>{r.subject}</div>

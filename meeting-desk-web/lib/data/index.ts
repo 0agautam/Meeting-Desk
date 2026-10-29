@@ -5,6 +5,7 @@ import { busyForPeople, calendarPeople, slotIsFreeForAll } from "@/lib/booking/a
 import { releaseHolds, stripHolds } from "@/lib/booking/holds";
 import { createCalendarEvent } from "@/lib/calendar/access";
 import {
+  deleteBookingsForHostFromStore,
   getBookingFromStore,
   insertBookingInStore,
   listBookingsFromStore,
@@ -14,6 +15,8 @@ import {
 import {
   addEventToStore,
   createRequestInStore,
+  deleteEventsForRequestsFromStore,
+  deleteRequestsFromStore,
   getRequestFromStore,
   listEventsFromStore,
   listRequestsFromStore,
@@ -60,7 +63,7 @@ export async function getStaffBySlug(slug: string): Promise<Staff | undefined> {
 
 export async function updateStaff(
   id: string,
-  patch: Partial<Pick<Staff, "calendarProvider" | "bufferMin" | "roles">>,
+  patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles">>,
 ): Promise<Staff> {
   return updateStaffInStore(id, patch);
 }
@@ -70,13 +73,47 @@ export async function createStaff(input: {
   email: string;
   roles: StaffRole[];
   calendarProvider: Staff["calendarProvider"];
-  bufferMin: number;
+  bufferBeforeMin: number;
+  bufferAfterMin: number;
 }): Promise<Staff> {
   return createStaffInStore(input);
 }
 
 export async function deleteStaff(id: string): Promise<void> {
   return deleteStaffInStore(id);
+}
+
+/**
+ * Everything that would be lost if a host were deleted together with their data: how many meeting requests and
+ * booking records they have (shown in the warning before an admin confirms).
+ */
+export async function countHostData(hostId: string): Promise<{ requests: number; bookings: number }> {
+  const [requests, bookings] = await Promise.all([listRequestsFromStore({ hostId }), listBookingsFromStore(hostId)]);
+  return { requests: requests.length, bookings: bookings.length };
+}
+
+/**
+ * Permanently deletes a host's meeting requests, their history and their booking records. The grey tentative holds are taken off
+ * the calendars first (host's and invited teammates'; best effort), so no stray events are left. Meetings that were already booked
+ * stay in the calendars: only the app's records of them are removed. Call this BEFORE the person's calendar approval is revoked.
+ */
+export async function deleteHostData(hostId: string): Promise<{ requests: number; events: number; bookings: number }> {
+  let requests = 0;
+  let events = 0;
+  // A query returns a limited number of rows, so work in rounds until nothing is left (capped, so it can't loop forever).
+  for (let round = 0; round < 50; round++) {
+    const batch = await listRequestsFromStore({ hostId });
+    if (batch.length === 0) break;
+    for (const request of batch) {
+      if (request.offeredSlots.length > 0) await releaseHolds(hostId, request.offeredSlots);
+    }
+    const ids = batch.map((r) => r.id);
+    events += await deleteEventsForRequestsFromStore(ids);
+    await deleteRequestsFromStore(ids);
+    requests += batch.length;
+  }
+  const bookings = await deleteBookingsForHostFromStore(hostId);
+  return { requests, events, bookings };
 }
 
 // ── Requests (real Data Store once deployed, in-memory fallback locally — see requestStore.ts) ──
@@ -203,10 +240,11 @@ export async function createBooking(
   const slot = { startUtc: input.startUtc, endUtc: input.endUtc };
   try {
     const pad = 2 * 3_600_000;
-    const people = request ? calendarPeople(request, host, await listStaffFromStore()).people : [host];
+    const checked = request ? calendarPeople(request, host, await listStaffFromStore()).checked : [host];
     // This request's own grey holds sit on the calendars at the offered times; they mustn't block the booking.
+    // Only the host and the required attendees are checked; optional ones are invited but never block.
     const [hostBusy, ...attendeeBusy] = await busyForPeople(
-      people,
+      checked,
       {
         startUtc: new Date(Date.parse(input.startUtc) - pad).toISOString(),
         endUtc: new Date(Date.parse(input.endUtc) + pad).toISOString(),
@@ -216,7 +254,7 @@ export async function createBooking(
     const ownBusy = bookings
       .filter((b) => b.id !== booking.id && b.status !== "failed")
       .map((b) => ({ startTime: b.startUtc, endTime: b.endUtc }));
-    if (!slotIsFreeForAll(slot, [{ bufferMin: hostBusy.bufferMin, busy: [...hostBusy.busy, ...ownBusy] }, ...attendeeBusy])) {
+    if (!slotIsFreeForAll(slot, [{ bufferBeforeMin: hostBusy.bufferBeforeMin, bufferAfterMin: hostBusy.bufferAfterMin, busy: [...hostBusy.busy, ...ownBusy] }, ...attendeeBusy])) {
       return { ok: false, reason: "slot_taken", booking: await release("That time is no longer available.") };
     }
   } catch (err) {

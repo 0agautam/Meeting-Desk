@@ -48,9 +48,9 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
   if (!host) return { error: "The host for this request isn't in the team list any more." };
 
   // Everyone joining must have a calendar we can read, or a time could be offered that clashes for them.
-  const { people, outside } = calendarPeople(request, host, staff);
+  const { people, checked, outside } = calendarPeople(request, host, staff);
   if (outside.length > 0) {
-    return { error: `${outside.map((a) => a.name).join(", ")} ${outside.length === 1 ? "isn't" : "aren't"} on the Meeting Desk team, so their calendar can't be checked. Add them in Settings, or take them off this request.` };
+    return { error: `${outside.map((a) => a.name).join(", ")} ${outside.length === 1 ? "isn't" : "aren't"} on the Meeting Desk team, so their calendar can't be reached. Add them in Settings, or take them off this request.` };
   }
   const missing = await withoutCalendar(people);
   if (missing.length > 0) {
@@ -72,7 +72,8 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
     }
   }
 
-  // Only the host's calendar matters; the ABR attendees are just invited. A far-off earliest date widens the window.
+  // Only the host's and the required attendees' calendars decide the times; optional attendees just get the hold and the invite.
+  // A far-off earliest date widens the window.
   const now = new Date();
   const daysToEarliest = constraints.earliestDate ? Math.max(0, Math.ceil((Date.parse(`${constraints.earliestDate}T00:00:00Z`) - now.getTime()) / 86_400_000)) : 0;
   const windowDays = Math.min(45, SUGGEST_WINDOW_DAYS + Math.ceil((daysToEarliest * 5) / 7));
@@ -81,7 +82,7 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
   let busy: PersonBusy[];
   try {
     // The request's own earlier holds are on the calendars too; they mustn't block its own times.
-    busy = await busyForPeople(people, { startUtc: now.toISOString(), endUtc: windowEnd.toISOString() }, request);
+    busy = await busyForPeople(checked, { startUtc: now.toISOString(), endUtc: windowEnd.toISOString() }, request);
   } catch (err) {
     console.warn("generateEmail: couldn't read calendar availability:", err);
     return { error: `Couldn't read everyone's calendar just now, so no times were offered. Try again in a moment.` };
@@ -96,7 +97,7 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
     constraints,
   });
   // If what the notes asked for can't be met, the coordinator is told and gets a ready-made question to the host.
-  const names = people.map((p) => p.name);
+  const names = checked.map((p) => p.name);
   const wanted = hasTimingConstraints(constraints) ? describeConstraints(constraints) : [];
   const question = (problem: "none" | "few" | "today" | "soon") => buildAvailabilityQuestion({ durationMin: request.durationMin, names, wanted, problem });
   if (slots.length === 0) {

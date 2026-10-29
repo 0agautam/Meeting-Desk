@@ -1,5 +1,6 @@
 import "server-only";
 import { parseRoles } from "@/lib/auth/permissions";
+import { DEFAULT_BUFFER_MIN } from "@/lib/config";
 import type { Staff, StaffRole } from "@/lib/types";
 import { tryGetCatalystApp } from "./catalystApp";
 import { getStore } from "./store";
@@ -13,6 +14,13 @@ import { getStore } from "./store";
 
 const TABLE = "Staff";
 
+/** A saved buffer in minutes, or the default when the column is empty (a person saved before the buffer was split in two). */
+function bufferOf(value: unknown): number {
+  if (value === null || value === undefined || value === "") return DEFAULT_BUFFER_MIN;
+  const minutes = Number(value);
+  return Number.isFinite(minutes) ? minutes : DEFAULT_BUFFER_MIN;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToStaff(row: Record<string, any>): Staff {
   return {
@@ -21,7 +29,8 @@ function rowToStaff(row: Record<string, any>): Staff {
     email: row.email,
     roles: parseRoles(row.role),
     calendarProvider: (row.calendar_provider || null) as Staff["calendarProvider"],
-    bufferMin: Number(row.buffer_min),
+    bufferBeforeMin: bufferOf(row.buffer_before_min),
+    bufferAfterMin: bufferOf(row.buffer_after_min),
     workingHours: {
       days: String(row.working_hours_days).split(",").filter(Boolean).map(Number),
       start: row.working_hours_start,
@@ -38,7 +47,8 @@ function staffToRow(input: Omit<Staff, "id">) {
     email: input.email,
     role: input.roles.join(","),
     calendar_provider: input.calendarProvider ?? "",
-    buffer_min: input.bufferMin,
+    buffer_before_min: input.bufferBeforeMin,
+    buffer_after_min: input.bufferAfterMin,
     working_hours_days: input.workingHours.days.join(","),
     working_hours_start: input.workingHours.start,
     working_hours_end: input.workingHours.end,
@@ -87,7 +97,7 @@ export async function getStaffBySlugFromStore(slug: string): Promise<Staff | und
 
 export async function updateStaffInStore(
   id: string,
-  patch: Partial<Pick<Staff, "calendarProvider" | "bufferMin" | "roles">>,
+  patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles">>,
 ): Promise<Staff> {
   const app = await tryGetCatalystApp();
   if (!app) {
@@ -102,7 +112,8 @@ export async function updateStaffInStore(
     .updateRow({
       ROWID: id,
       ...("calendarProvider" in patch ? { calendar_provider: patch.calendarProvider ?? "" } : {}),
-      ...("bufferMin" in patch ? { buffer_min: patch.bufferMin } : {}),
+      ...("bufferBeforeMin" in patch ? { buffer_before_min: patch.bufferBeforeMin } : {}),
+      ...("bufferAfterMin" in patch ? { buffer_after_min: patch.bufferAfterMin } : {}),
       ...("roles" in patch ? { role: (patch.roles ?? []).join(",") } : {}),
     });
   return rowToStaff(updated);
@@ -117,14 +128,16 @@ export async function createStaffInStore(input: {
   email: string;
   roles: StaffRole[];
   calendarProvider: Staff["calendarProvider"];
-  bufferMin: number;
+  bufferBeforeMin: number;
+  bufferAfterMin: number;
 }): Promise<Staff> {
   const base: Omit<Staff, "id"> = {
     name: input.name,
     email: input.email,
     roles: input.roles,
     calendarProvider: input.calendarProvider,
-    bufferMin: input.bufferMin,
+    bufferBeforeMin: input.bufferBeforeMin,
+    bufferAfterMin: input.bufferAfterMin,
     workingHours: { days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00" },
     timezone: "America/Toronto",
     slug: slugify(input.name) || "host",

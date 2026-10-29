@@ -1,6 +1,6 @@
 import "server-only";
 import type { BusyInterval, BusyWindow } from "@/lib/booking/slots";
-import { getCrmAccount, saveCrmAccount } from "@/lib/crm/accountStore";
+import { ORGANISATION_CRM_ID, getCrmAccount, saveCrmAccount } from "@/lib/crm/accountStore";
 import { getCalendarAccount, saveCalendarAccount, type CalendarAccount } from "./accountStore";
 import { createEvent as createGoogleEvent, deleteEvent as deleteGoogleEvent, getBusyIntervals as getGoogleBusy } from "./google";
 import { googleClient, refreshGoogleAccessToken } from "./googleOauth";
@@ -32,6 +32,7 @@ const crmKey = (staffId: string) => `crm:${staffId}`;
 export function forgetAccessToken(staffId: string): void {
   tokenCache().delete(calendarKey(staffId));
   tokenCache().delete(crmKey(staffId));
+  tokenCache().delete(crmKey(ORGANISATION_CRM_ID));
 }
 
 type TokenSource = {
@@ -92,11 +93,38 @@ async function connectedAccount(staffId: string): Promise<CalendarAccount | null
 }
 
 /**
- * Authorization header for calling Zoho CRM as this person: their separate CRM approval if they have one,
- * otherwise their Zoho Calendar approval. Null if they have neither. Throws "invalid_code" if they withdrew the approval at Zoho.
+ * Authorization header for calling Zoho CRM: the organisation's shared connection if an admin made one, otherwise this
+ * person's own CRM approval, otherwise their Zoho Calendar approval. Null if there is none. Throws "invalid_code" if the
+ * organisation connection is broken and there is nothing else to fall back on.
  */
 export async function getZohoApiHeaders(staffId: string): Promise<Record<string, string> | null> {
   // A problem reading the CRM-approval table must not break CRM access for people who use their Zoho Calendar approval.
+  const org = await getCrmAccount(ORGANISATION_CRM_ID).catch((err) => {
+    console.warn("getZohoApiHeaders: couldn't read the organisation CRM connection:", err);
+    return null;
+  });
+  let orgBroken = org?.status === "error";
+  if (org && org.status === "connected" && org.refreshToken) {
+    try {
+      const token = await cachedToken({
+        key: crmKey(ORGANISATION_CRM_ID),
+        refreshToken: org.refreshToken,
+        refresh: () => zohoRefresh(org.refreshToken),
+        onRevoked: () => saveCrmAccount({ ...org, status: "error" }),
+      });
+      return { Authorization: `Zoho-oauthtoken ${token}` };
+    } catch (err) {
+      if (!(err instanceof Error && err.message === "invalid_code")) throw err;
+      orgBroken = true;
+    }
+  }
+  const own = await personalZohoApiHeaders(staffId);
+  if (!own && orgBroken) throw new Error("invalid_code");
+  return own;
+}
+
+/** The older route: this person's own CRM approval, or their Zoho Calendar approval. */
+async function personalZohoApiHeaders(staffId: string): Promise<Record<string, string> | null> {
   const crm = await getCrmAccount(staffId).catch((err) => {
     console.warn("getZohoApiHeaders: couldn't read CrmAccounts:", err);
     return null;

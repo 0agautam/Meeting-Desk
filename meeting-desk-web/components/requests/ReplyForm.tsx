@@ -51,7 +51,7 @@ export default function ReplyForm({
 
   // The request only stores addresses; the CRM account label belongs to the first recipient.
   const asContact = (email: string, index: number): Contact => ({ name: email, email, company: index === 0 ? (request.crmAccount ?? null) : null });
-  const initialAttendees: CrmUser[] = request.attendees.map((a) => ({ id: a.crmUserId ?? a.email, name: a.name, email: a.email }));
+  const initialAttendees = request.attendees.map((a) => ({ id: a.crmUserId ?? a.email, name: a.name, email: a.email, required: a.required !== false }));
 
   return (
     <form action={resubmitRequest} className="flex flex-col gap-3 rounded-card border border-line p-4">

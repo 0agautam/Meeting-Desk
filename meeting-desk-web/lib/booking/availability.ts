@@ -1,19 +1,19 @@
 import "server-only";
 import { getBusyForStaff, hasCalendar } from "@/lib/calendar/access";
-import type { Attendee, MeetingRequest, OfferedSlot, Staff } from "@/lib/types";
+import { isRequired, type Attendee, type MeetingRequest, type OfferedSlot, type Staff } from "@/lib/types";
 import { withoutOwnHolds } from "./holds";
 import type { BusyInterval, PersonBusy } from "./slots";
 
-/** True if the slot, with the person's buffer on both sides, doesn't touch any busy interval. */
-export function slotIsFree(slot: OfferedSlot, busy: BusyInterval[], bufferMin: number): boolean {
-  const start = Date.parse(slot.startUtc) - bufferMin * 60_000;
-  const end = Date.parse(slot.endUtc) + bufferMin * 60_000;
+/** True if the slot, with the person's buffer before it starts and after it ends, doesn't touch any busy interval. */
+export function slotIsFree(slot: OfferedSlot, busy: BusyInterval[], bufferBeforeMin: number, bufferAfterMin: number): boolean {
+  const start = Date.parse(slot.startUtc) - bufferBeforeMin * 60_000;
+  const end = Date.parse(slot.endUtc) + bufferAfterMin * 60_000;
   return !busy.some((b) => Date.parse(b.startTime) < end && Date.parse(b.endTime) > start);
 }
 
-/** True if the slot is free for every one of these people, each with their own buffer. */
+/** True if the slot is free for every one of these people, each with their own buffers. */
 export function slotIsFreeForAll(slot: OfferedSlot, people: PersonBusy[]): boolean {
-  return people.every((p) => slotIsFree(slot, p.busy, p.bufferMin));
+  return people.every((p) => slotIsFree(slot, p.busy, p.bufferBeforeMin, p.bufferAfterMin));
 }
 
 /**
@@ -28,28 +28,38 @@ export async function busyForPeople(
   return Promise.all(
     people.map(async (p) => {
       const busy = await getBusyForStaff(p.id, { ...opts, timeZone: p.timezone, workHours: p.workingHours });
-      return { bufferMin: p.bufferMin, busy: request ? withoutOwnHolds(busy, request) : busy };
+      return { bufferBeforeMin: p.bufferBeforeMin, bufferAfterMin: p.bufferAfterMin, busy: request ? withoutOwnHolds(busy, request) : busy };
     }),
   );
 }
 
 /**
- * The calendars that count for a request: the host plus every invited attendee who is on the team (matched by
- * email). `outside` are attendees who aren't on the team (a CRM user without a Meeting Desk account), whose
- * calendar can't be read.
+ * The calendars for a request: `people` is the host plus every invited attendee who is on the team (matched by
+ * email); they all get the grey hold. `checked` is the host plus the required attendees only: their free/busy
+ * decides which times are offered. `outside` are attendees who aren't on the team (a CRM user without a
+ * Meeting Desk account), whose calendar can't be read.
  */
-export function calendarPeople(request: Pick<MeetingRequest, "attendees">, host: Staff, staff: Staff[]): { people: Staff[]; outside: Attendee[] } {
+export function calendarPeople(
+  request: Pick<MeetingRequest, "attendees">,
+  host: Staff,
+  staff: Staff[],
+): { people: Staff[]; checked: Staff[]; outside: Attendee[] } {
   const byEmail = new Map(staff.map((s) => [s.email.trim().toLowerCase(), s]));
   const people = [host];
+  const checked = [host];
   const outside: Attendee[] = [];
   for (const attendee of request.attendees) {
     const email = attendee.email.trim().toLowerCase();
     if (email === host.email.trim().toLowerCase()) continue;
     const member = byEmail.get(email);
-    if (!member) outside.push(attendee);
-    else if (!people.includes(member)) people.push(member);
+    if (!member) {
+      outside.push(attendee);
+      continue;
+    }
+    if (!people.includes(member)) people.push(member);
+    if (isRequired(attendee) && !checked.includes(member)) checked.push(member);
   }
-  return { people, outside };
+  return { people, checked, outside };
 }
 
 /** The people whose calendar isn't connected (never connected, or the approval needs renewing). */
