@@ -19,10 +19,10 @@ export type CrmSearchResponse =
 
 /** Live Zoho CRM client lookup for the new-request form (docs/RESEARCH.md §10). Contacts without an email come back with email: null so the form can show them as unusable. */
 export async function searchCrmContacts(query: string): Promise<CrmSearchResponse> {
-  const user = await requireUser();
+  await requireUser();
   if (typeof query !== "string" || !sanitizeSearchTerm(query)) return { ok: false, error: "too_short" };
   try {
-    return { ok: true, ...(await searchContacts(user.id, query)) };
+    return { ok: true, ...(await searchContacts(query)) };
   } catch (err) {
     if (err instanceof CrmAccessError) return { ok: false, error: err.kind, detail: err.detail };
     console.warn("searchCrmContacts failed:", err);

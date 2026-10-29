@@ -23,11 +23,11 @@ export async function listCrmUsers(staffId: string): Promise<CrmUser[]> {
   const cached = cache().get(staffId);
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.users;
 
-  const headers = await crmHeaders(staffId);
+  const headers = await crmHeaders();
   const users: CrmUser[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
     const res = await fetch(`${USERS_URL}?${new URLSearchParams({ type: "ActiveUsers", page: String(page), per_page: String(PER_PAGE) })}`, { headers });
-    await assertCrmAuthorized(res, staffId);
+    await assertCrmAuthorized(res);
     if (res.status === 204) break;
     const text = await res.text();
     if (!res.ok) throw new Error(`CRM users failed: ${res.status} ${text.slice(0, 300)}`);

@@ -50,13 +50,13 @@ type CoqlRow = {
   "Account_Name.Account_Name"?: string | null;
 };
 
-async function runCoql(headers: Record<string, string>, staffId: string, selectQuery: string): Promise<CoqlRow[]> {
+async function runCoql(headers: Record<string, string>, selectQuery: string): Promise<CoqlRow[]> {
   const res = await fetch(COQL_URL, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: JSON.stringify({ select_query: selectQuery }),
   });
-  await assertCrmAuthorized(res, staffId);
+  await assertCrmAuthorized(res);
   // COQL answers 204 (no body) when nothing matches.
   if (res.status === 204) return [];
   const bodyText = await res.text();
@@ -64,11 +64,11 @@ async function runCoql(headers: Record<string, string>, staffId: string, selectQ
   return (JSON.parse(bodyText) as { data?: CoqlRow[] }).data ?? [];
 }
 
-export async function searchContacts(staffId: string, rawTerm: string): Promise<CrmSearchResult> {
+export async function searchContacts(rawTerm: string): Promise<CrmSearchResult> {
   const term = sanitizeSearchTerm(rawTerm);
   if (!term) return { contacts: [], hasMore: false };
 
-  const headers = await crmHeaders(staffId);
+  const headers = await crmHeaders();
 
   // COQL only combines conditions two at a time: three `or`s in one flat group is a
   // SYNTAX_ERROR (found live, Oct 2, 2026), so the third is nested around the first pair.
@@ -82,7 +82,7 @@ export async function searchContacts(staffId: string, rawTerm: string): Promise<
     `where (((Email like ${like}) or (Full_Name like ${like})) or (Company like ${like})) ` +
     `limit ${RESULT_LIMIT + 1}`;
 
-  const [contactsRes, leadsRes] = await Promise.allSettled([runCoql(headers, staffId, contactsQuery), runCoql(headers, staffId, leadsQuery)]);
+  const [contactsRes, leadsRes] = await Promise.allSettled([runCoql(headers, contactsQuery), runCoql(headers, leadsQuery)]);
 
   // If Contacts failed, the whole search failed (an access problem is reported as such).
   if (contactsRes.status === "rejected") throw contactsRes.reason;

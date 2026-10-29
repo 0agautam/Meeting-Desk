@@ -34,10 +34,11 @@ async function findRow(staffId: string) {
   return rows[0]?.[TABLE] ?? null;
 }
 
+/** The saved approval, or null if there is none. The organisation's row can exist without one (it also holds the hours and time zone). */
 export async function getCrmAccount(staffId: string): Promise<CrmAccount | null> {
   if (!(await tryGetCatalystApp())) return memory().get(staffId) ?? null;
   const row = await findRow(staffId);
-  return row ? rowToAccount(row) : null;
+  return row && row.refresh_token ? rowToAccount(row) : null;
 }
 
 /** Saves (or replaces) the person's CRM approval. */
@@ -62,4 +63,23 @@ export async function deleteCrmAccount(staffId: string): Promise<void> {
   }
   const existing = await findRow(staffId);
   if (existing) await app.datastore().table(TABLE).deleteRow(existing.ROWID);
+}
+
+/**
+ * Forgets the organisation's approval but keeps its row, which also holds the saved time zone and hours. Falls back to deleting the
+ * row when there is nothing else on it.
+ */
+export async function clearOrganisationApproval(): Promise<void> {
+  const app = await tryGetCatalystApp();
+  if (!app) {
+    memory().delete(ORGANISATION_CRM_ID);
+    return;
+  }
+  const existing = await findRow(ORGANISATION_CRM_ID);
+  if (!existing) return;
+  if (existing.org_timezone || existing.business_hours) {
+    await app.datastore().table(TABLE).updateRow({ ROWID: existing.ROWID, refresh_token: "", account_email: "", status: "error" });
+  } else {
+    await app.datastore().table(TABLE).deleteRow(existing.ROWID);
+  }
 }

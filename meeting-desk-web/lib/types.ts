@@ -9,9 +9,11 @@ export type CalendarProvider = "google" | "zoho";
 export type WorkingHours = {
   /** 0 = Sunday … 6 = Saturday */
   days: number[];
-  /** "HH:mm" in the staff member's time zone */
+  /** "HH:mm" in the organisation's time zone: the hours on every working day that has no entry in `byDay`. */
   start: string;
   end: string;
+  /** Different hours on particular weekdays (0 = Sunday), when the organisation's hours aren't the same every day. */
+  byDay?: Record<number, { start: string; end: string }>;
 };
 
 export type Staff = {

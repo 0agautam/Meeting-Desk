@@ -16,19 +16,22 @@ const CALENDAR_URL = "https://calendar.zoho.com/api/v1";
 /** Short-lived cookie that proves the approval coming back is the one we started (anti-forgery). */
 export const ZOHO_STATE_COOKIE = "md_zoho_state";
 
-/** One approval for everything: calendar events, CRM search/users/modules/settings (read only), and the account's email so we can check who approved. */
-export const ZOHO_SCOPES = [
-  "ZohoCalendar.calendar.READ",
-  "ZohoCalendar.event.ALL",
+/** The personal Zoho Calendar approval: calendar events only, and the account's email so we can check who approved. The CRM has its own organisation-wide approval. */
+export const ZOHO_SCOPES = ["ZohoCalendar.calendar.READ", "ZohoCalendar.event.ALL", "AaaServer.profile.READ"].join(",");
+
+/**
+ * The organisation's CRM approval (an admin connects it once in Settings): CRM read only, every setting included (business hours,
+ * time zone, organisation details), plus the account's email. No calendar, and nothing that can change the CRM.
+ */
+export const ZOHO_CRM_SCOPES = [
   "ZohoCRM.coql.READ",
-  "ZohoCRM.modules.READ", // every module (contacts, leads, accounts, deals, …), read only
-  "ZohoCRM.settings.READ", // CRM settings and metadata (modules, fields)
+  "ZohoCRM.modules.READ",
+  "ZohoCRM.settings.READ", // all CRM settings, read only
+  "ZohoCRM.settings.business_hours.READ", // the organisation's business hours and time zone
+  "ZohoCRM.org.READ", // organisation details (its time zone is the fallback)
   "ZohoCRM.users.READ",
   "AaaServer.profile.READ",
 ].join(",");
-
-/** The CRM-only approval for people whose calendar is not Zoho: no calendar, just CRM read and the account's email. */
-export const ZOHO_CRM_SCOPES = ["ZohoCRM.coql.READ", "ZohoCRM.modules.READ", "ZohoCRM.settings.READ", "ZohoCRM.users.READ", "AaaServer.profile.READ"].join(",");
 
 /** Cookie that remembers WHY the person is at Zoho (`crm` = the CRM-only approval), so the one callback address can serve both. */
 export const ZOHO_PURPOSE_COOKIE = "md_zoho_purpose";

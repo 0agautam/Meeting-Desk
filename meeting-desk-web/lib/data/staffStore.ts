@@ -1,6 +1,7 @@
 import "server-only";
 import { parseRoles } from "@/lib/auth/permissions";
 import { DEFAULT_BUFFER_MIN } from "@/lib/config";
+import { NO_HOURS } from "@/lib/org/settings";
 import type { Staff, StaffRole } from "@/lib/types";
 import { tryGetCatalystApp } from "./catalystApp";
 import { getStore } from "./store";
@@ -31,12 +32,9 @@ function rowToStaff(row: Record<string, any>): Staff {
     calendarProvider: (row.calendar_provider || null) as Staff["calendarProvider"],
     bufferBeforeMin: bufferOf(row.buffer_before_min),
     bufferAfterMin: bufferOf(row.buffer_after_min),
-    workingHours: {
-      days: String(row.working_hours_days).split(",").filter(Boolean).map(Number),
-      start: row.working_hours_start,
-      end: row.working_hours_end,
-    },
-    timezone: row.timezone,
+    // Time zone and hours belong to the organisation: lib/data/index.ts fills them in (withOrgSettings).
+    workingHours: NO_HOURS,
+    timezone: "UTC",
     slug: row.slug,
   };
 }
@@ -49,10 +47,6 @@ function staffToRow(input: Omit<Staff, "id">) {
     calendar_provider: input.calendarProvider ?? "",
     buffer_before_min: input.bufferBeforeMin,
     buffer_after_min: input.bufferAfterMin,
-    working_hours_days: input.workingHours.days.join(","),
-    working_hours_start: input.workingHours.start,
-    working_hours_end: input.workingHours.end,
-    timezone: input.timezone,
     slug: input.slug,
   };
 }
@@ -138,8 +132,8 @@ export async function createStaffInStore(input: {
     calendarProvider: input.calendarProvider,
     bufferBeforeMin: input.bufferBeforeMin,
     bufferAfterMin: input.bufferAfterMin,
-    workingHours: { days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00" },
-    timezone: "America/Toronto",
+    workingHours: NO_HOURS,
+    timezone: "UTC",
     slug: slugify(input.name) || "host",
   };
 

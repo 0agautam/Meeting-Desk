@@ -3,6 +3,7 @@ import "server-only";
 import type { Booking, EmailDraft, FieldChange, SchedulingConstraints, MeetingRequest, OfferedSlot, RequestEvent, RequestStatus, Staff, StaffRole } from "@/lib/types";
 import { busyForPeople, calendarPeople, slotIsFreeForAll } from "@/lib/booking/availability";
 import { releaseHolds, stripHolds } from "@/lib/booking/holds";
+import { getOrgSettings, withOrgSettings } from "@/lib/org/settings";
 import { createCalendarEvent } from "@/lib/calendar/access";
 import {
   deleteBookingsForHostFromStore,
@@ -45,27 +46,32 @@ import { getStore, newId, type RequestDraft } from "./store";
  */
 
 // ── Staff (real Data Store once deployed, mock fallback locally — see staffStore.ts) ──
+// The time zone and working hours are the organisation's (Settings, first fetched from the CRM), applied to everyone here.
 export async function listStaff(): Promise<Staff[]> {
-  return listStaffFromStore();
+  const [staff, org] = await Promise.all([listStaffFromStore(), getOrgSettings()]);
+  return staff.map((s) => withOrgSettings(s, org));
 }
 
 export async function getStaff(id: string): Promise<Staff | undefined> {
-  return getStaffFromStore(id);
+  const [staff, org] = await Promise.all([getStaffFromStore(id), getOrgSettings()]);
+  return staff && withOrgSettings(staff, org);
 }
 
 export async function getStaffByEmail(email: string): Promise<Staff | undefined> {
-  return getStaffByEmailFromStore(email);
+  const [staff, org] = await Promise.all([getStaffByEmailFromStore(email), getOrgSettings()]);
+  return staff && withOrgSettings(staff, org);
 }
 
 export async function getStaffBySlug(slug: string): Promise<Staff | undefined> {
-  return getStaffBySlugFromStore(slug);
+  const [staff, org] = await Promise.all([getStaffBySlugFromStore(slug), getOrgSettings()]);
+  return staff && withOrgSettings(staff, org);
 }
 
 export async function updateStaff(
   id: string,
   patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles">>,
 ): Promise<Staff> {
-  return updateStaffInStore(id, patch);
+  return withOrgSettings(await updateStaffInStore(id, patch), await getOrgSettings());
 }
 
 export async function createStaff(input: {
@@ -76,7 +82,7 @@ export async function createStaff(input: {
   bufferBeforeMin: number;
   bufferAfterMin: number;
 }): Promise<Staff> {
-  return createStaffInStore(input);
+  return withOrgSettings(await createStaffInStore(input), await getOrgSettings());
 }
 
 export async function deleteStaff(id: string): Promise<void> {
@@ -227,7 +233,7 @@ export async function createBooking(
     updateBookingInStore(booking.id, { status: "failed", failureReason: reason, slotKey: `${slotKey}|failed|${booking.id}` });
 
   const [host, request, bookings] = await Promise.all([
-    getStaffFromStore(input.hostId),
+    getStaff(input.hostId),
     input.requestId ? getRequestFromStore(input.requestId) : undefined,
     listBookingsFromStore(input.hostId),
   ]);
@@ -240,7 +246,7 @@ export async function createBooking(
   const slot = { startUtc: input.startUtc, endUtc: input.endUtc };
   try {
     const pad = 2 * 3_600_000;
-    const checked = request ? calendarPeople(request, host, await listStaffFromStore()).checked : [host];
+    const checked = request ? calendarPeople(request, host, await listStaff()).checked : [host];
     // This request's own grey holds sit on the calendars at the offered times; they mustn't block the booking.
     // Only the host and the required attendees are checked; optional ones are invited but never block.
     const [hostBusy, ...attendeeBusy] = await busyForPeople(

@@ -10,7 +10,7 @@ import { deleteCalendarAccount, getCalendarAccount } from "@/lib/calendar/accoun
 import { GOOGLE_STATE_COOKIE, buildGoogleAuthorizeUrl, googleClient } from "@/lib/calendar/googleOauth";
 import { revokeCalendarAccount } from "@/lib/calendar/revoke";
 import { ZOHO_CRM_SCOPES, ZOHO_PURPOSE_COOKIE, ZOHO_STATE_COOKIE, buildAuthorizeUrl, revokeRefreshToken, zohoClient } from "@/lib/calendar/zohoOauth";
-import { ORGANISATION_CRM_ID, deleteCrmAccount, getCrmAccount } from "@/lib/crm/accountStore";
+import { ORGANISATION_CRM_ID, clearOrganisationApproval, getCrmAccount } from "@/lib/crm/accountStore";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
 import type { CalendarProvider } from "@/lib/types";
@@ -91,7 +91,7 @@ export async function disconnectOrganisationCrm() {
   const account = await getCrmAccount(ORGANISATION_CRM_ID);
   if (account) {
     await revokeRefreshToken(account.refreshToken);
-    await deleteCrmAccount(ORGANISATION_CRM_ID);
+    await clearOrganisationApproval();
   }
   revalidatePath("/settings");
   redirect("/settings?crm=disconnected");

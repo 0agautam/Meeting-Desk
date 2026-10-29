@@ -1,5 +1,5 @@
 import "server-only";
-import { forgetAccessToken, getZohoApiHeaders } from "@/lib/calendar/access";
+import { forgetCrmAccessToken, getZohoApiHeaders } from "@/lib/calendar/access";
 
 /**
  * CRM access is each person's own Zoho approval (the "Connect Zoho" button in My settings), so
@@ -17,10 +17,10 @@ export class CrmAccessError extends Error {
   }
 }
 
-/** Authorization headers for this person's CRM calls. Throws CrmAccessError if they can't be had. */
-export async function crmHeaders(staffId: string): Promise<Record<string, string>> {
+/** Authorization headers for CRM calls (the organisation's connection). Throws CrmAccessError if they can't be had. */
+export async function crmHeaders(): Promise<Record<string, string>> {
   try {
-    const headers = await getZohoApiHeaders(staffId);
+    const headers = await getZohoApiHeaders();
     if (!headers) throw new CrmAccessError("not_connected");
     return headers;
   } catch (err) {
@@ -31,9 +31,9 @@ export async function crmHeaders(staffId: string): Promise<Record<string, string
 }
 
 /** Zoho answers 401 (INVALID_TOKEN / OAUTH_SCOPE_MISMATCH) when the token is dead or lacks a permission the call needs. The cached token is dropped so the next try gets a fresh one. */
-export async function assertCrmAuthorized(res: Response, staffId: string): Promise<void> {
+export async function assertCrmAuthorized(res: Response): Promise<void> {
   if (res.status !== 401) return;
-  forgetAccessToken(staffId);
+  forgetCrmAccessToken();
   let code = "";
   try {
     code = String(((await res.clone().json()) as { code?: unknown }).code ?? "");

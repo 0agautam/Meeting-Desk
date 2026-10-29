@@ -10,6 +10,10 @@ import { deleteCalendarAccount, getCalendarAccount } from "@/lib/calendar/accoun
 import { revokeCalendarAccount } from "@/lib/calendar/revoke";
 import { revokeRefreshToken } from "@/lib/calendar/zohoOauth";
 import { deleteCrmAccount, getCrmAccount } from "@/lib/crm/accountStore";
+import { CrmAccessError } from "@/lib/crm/auth";
+import { copyBusinessHoursFromCrm } from "@/lib/crm/businessHours";
+import { WEEKDAYS, hoursFromDays, isValidTimeZone } from "@/lib/org/hours";
+import { getSavedOrgSettings, saveOrgSettings } from "@/lib/org/settings";
 import { createStaff, deleteHostData, deleteStaff, getStaffByEmail, listRequests, listStaff, updateStaff } from "@/lib/data";
 import type { CalendarProvider, StaffRole } from "@/lib/types";
 
@@ -146,4 +150,38 @@ async function removeStaffAccount(id: string) {
   await deleteCrmAccount(id);
   await deleteSessionsForStaff(id);
   await deleteStaff(id);
+}
+
+/** The organisation's time zone and working hours, typed in by an admin (one row per weekday: a tick plus start and end). */
+export async function saveOrganisationHours(formData: FormData) {
+  await requireRole("admin");
+  const timezone = String(formData.get("timezone") ?? "");
+  if (!isValidTimeZone(timezone)) redirect("/settings?hours=bad-timezone#org-hours-title");
+
+  const entries = WEEKDAYS.filter((w) => formData.get(`day_${w.day}`) === "on").map((w) => ({
+    day: w.day,
+    start: String(formData.get(`start_${w.day}`) ?? ""),
+    end: String(formData.get(`end_${w.day}`) ?? ""),
+  }));
+  const hours = hoursFromDays(entries);
+  if (!hours) redirect("/settings?hours=bad-hours#org-hours-title");
+
+  await saveOrgSettings({ timezone, hours });
+  revalidatePath("/settings");
+  redirect("/settings?hours=saved#org-hours-title");
+}
+
+/** "Refresh from CRM": replaces the saved time zone and hours with what the Zoho CRM has now. */
+export async function refreshOrganisationHoursFromCrm() {
+  await requireRole("admin");
+  let outcome = "refreshed";
+  try {
+    const found = await copyBusinessHoursFromCrm({ onlyIfMissing: false, saved: await getSavedOrgSettings() });
+    if (!found.timezone && !found.hours) outcome = "crm-empty";
+  } catch (err) {
+    outcome = err instanceof CrmAccessError ? "crm-not-connected" : "crm-error";
+    if (outcome === "crm-error") console.warn("refreshOrganisationHoursFromCrm failed:", err);
+  }
+  revalidatePath("/settings");
+  redirect(`/settings?hours=${outcome}#org-hours-title`);
 }

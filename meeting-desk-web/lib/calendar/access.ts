@@ -26,13 +26,11 @@ const globalForTokens = globalThis as typeof globalThis & { __meetingDeskAccessT
 const tokenCache = () => (globalForTokens.__meetingDeskAccessTokens ??= new Map());
 
 const calendarKey = (staffId: string) => `cal:${staffId}`;
-const crmKey = (staffId: string) => `crm:${staffId}`;
+const crmKey = () => `crm:${ORGANISATION_CRM_ID}`;
 
-/** Throws away the person's cached access tokens, so the next call gets fresh ones (used when a provider rejects one). */
-export function forgetAccessToken(staffId: string): void {
-  tokenCache().delete(calendarKey(staffId));
-  tokenCache().delete(crmKey(staffId));
-  tokenCache().delete(crmKey(ORGANISATION_CRM_ID));
+/** Throws away the cached CRM access token, so the next call gets a fresh one (used when Zoho rejects it). */
+export function forgetCrmAccessToken(): void {
+  tokenCache().delete(crmKey());
 }
 
 type TokenSource = {
@@ -93,54 +91,23 @@ async function connectedAccount(staffId: string): Promise<CalendarAccount | null
 }
 
 /**
- * Authorization header for calling Zoho CRM: the organisation's shared connection if an admin made one, otherwise this
- * person's own CRM approval, otherwise their Zoho Calendar approval. Null if there is none. Throws "invalid_code" if the
- * organisation connection is broken and there is nothing else to fall back on.
+ * Authorization header for calling Zoho CRM: always the organisation's one shared connection (an admin makes it in Settings).
+ * Null if there isn't one. Throws "invalid_code" if Zoho refused it (withdrawn or expired), so an admin has to reconnect.
  */
-export async function getZohoApiHeaders(staffId: string): Promise<Record<string, string> | null> {
-  // A problem reading the CRM-approval table must not break CRM access for people who use their Zoho Calendar approval.
+export async function getZohoApiHeaders(): Promise<Record<string, string> | null> {
   const org = await getCrmAccount(ORGANISATION_CRM_ID).catch((err) => {
     console.warn("getZohoApiHeaders: couldn't read the organisation CRM connection:", err);
     return null;
   });
-  let orgBroken = org?.status === "error";
-  if (org && org.status === "connected" && org.refreshToken) {
-    try {
-      const token = await cachedToken({
-        key: crmKey(ORGANISATION_CRM_ID),
-        refreshToken: org.refreshToken,
-        refresh: () => zohoRefresh(org.refreshToken),
-        onRevoked: () => saveCrmAccount({ ...org, status: "error" }),
-      });
-      return { Authorization: `Zoho-oauthtoken ${token}` };
-    } catch (err) {
-      if (!(err instanceof Error && err.message === "invalid_code")) throw err;
-      orgBroken = true;
-    }
-  }
-  const own = await personalZohoApiHeaders(staffId);
-  if (!own && orgBroken) throw new Error("invalid_code");
-  return own;
-}
-
-/** The older route: this person's own CRM approval, or their Zoho Calendar approval. */
-async function personalZohoApiHeaders(staffId: string): Promise<Record<string, string> | null> {
-  const crm = await getCrmAccount(staffId).catch((err) => {
-    console.warn("getZohoApiHeaders: couldn't read CrmAccounts:", err);
-    return null;
+  if (!org) return null;
+  if (org.status === "error" || !org.refreshToken) throw new Error("invalid_code");
+  const token = await cachedToken({
+    key: crmKey(),
+    refreshToken: org.refreshToken,
+    refresh: () => zohoRefresh(org.refreshToken),
+    onRevoked: () => saveCrmAccount({ ...org, status: "error" }),
   });
-  if (crm && crm.status === "connected" && crm.refreshToken) {
-    const token = await cachedToken({
-      key: crmKey(staffId),
-      refreshToken: crm.refreshToken,
-      refresh: () => zohoRefresh(crm.refreshToken),
-      onRevoked: () => saveCrmAccount({ ...crm, status: "error" }),
-    });
-    return { Authorization: `Zoho-oauthtoken ${token}` };
-  }
-  const account = await connectedAccount(staffId);
-  if (!account || account.provider !== "zoho") return null;
-  return { Authorization: `Zoho-oauthtoken ${await getAccessToken(account)}` };
+  return { Authorization: `Zoho-oauthtoken ${token}` };
 }
 
 export async function hasCalendar(staffId: string): Promise<boolean> {

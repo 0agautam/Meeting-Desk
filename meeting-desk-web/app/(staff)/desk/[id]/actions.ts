@@ -47,6 +47,11 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
   const host = staff.find((s) => s.id === request.hostId);
   if (!host) return { error: "The host for this request isn't in the team list any more." };
 
+  // The times offered follow the organisation's business hours, which an admin sets in Settings (or copies from the CRM).
+  if (host.workingHours.days.length === 0) {
+    return { error: "The organisation's time zone and business hours aren't set yet, so no times can be offered. An admin can connect the Zoho CRM or set them in Settings." };
+  }
+
   // Everyone joining must have a calendar we can read, or a time could be offered that clashes for them.
   const { people, checked, outside } = calendarPeople(request, host, staff);
   if (outside.length > 0) {

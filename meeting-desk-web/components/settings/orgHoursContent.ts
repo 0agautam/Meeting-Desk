@@ -1,0 +1,27 @@
+/** Copy for the organisation's time zone and business hours card in Settings (admins only). */
+export const ORG_HOURS = {
+  title: "Time zone and business hours",
+  lede: "Every time Meeting Desk offers, shows or puts in a calendar uses this time zone and these hours. They are first copied from your Zoho CRM when it is connected; you can change them here.",
+  notSet: "Not set yet. Connect the Zoho CRM above to copy them from it, or set them here. Until then no times can be offered.",
+  timezoneLabel: "Time zone",
+  timezoneSearch: "Search time zones…",
+  timezoneNone: "No time zone matches that.",
+  timezoneHelp: "Daylight saving follows this time zone automatically.",
+  hoursLabel: "Working days and hours",
+  startLabel: (day: string) => `${day} start`,
+  endLabel: (day: string) => `${day} end`,
+  save: "Save",
+  refresh: "Refresh from CRM",
+  refreshHelp: "Replaces the saved time zone and hours with what the Zoho CRM has now.",
+  defaultStart: "09:00",
+  defaultEnd: "17:00",
+  messages: {
+    saved: { tone: "good", text: "Time zone and business hours saved." },
+    refreshed: { tone: "good", text: "Copied the time zone and business hours from the Zoho CRM." },
+    "crm-empty": { tone: "bad", text: "The Zoho CRM didn't return a time zone or business hours. Set them here instead." },
+    "crm-not-connected": { tone: "bad", text: "Connect (or reconnect) the Zoho CRM above first." },
+    "crm-error": { tone: "bad", text: "Couldn't read the business hours from the Zoho CRM just now. Try again, or set them here." },
+    "bad-timezone": { tone: "bad", text: "That isn't a time zone Meeting Desk knows. Pick one from the list." },
+    "bad-hours": { tone: "bad", text: "Tick at least one day, and make each end time later than its start time." },
+  } as Record<string, { tone: "good" | "bad"; text: string }>,
+} as const;

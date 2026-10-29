@@ -13,6 +13,8 @@ import {
   zohoClient,
 } from "@/lib/calendar/zohoOauth";
 import { ORGANISATION_CRM_ID, saveCrmAccount } from "@/lib/crm/accountStore";
+import { copyBusinessHoursFromCrm } from "@/lib/crm/businessHours";
+import { getSavedOrgSettings } from "@/lib/org/settings";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
 
@@ -66,6 +68,13 @@ export async function GET(request: Request) {
       // Any Zoho account may approve here (a shared admin account is fine), so the email isn't compared with the admin's own.
       await saveCrmAccount({ staffId: ORGANISATION_CRM_ID, refreshToken: tokens.refreshToken, accountEmail: approvedEmail, status: "connected" });
       outcome = "connected";
+      // The organisation's time zone and business hours come from the CRM the first time; anything an admin saved already is kept.
+      try {
+        await copyBusinessHoursFromCrm({ onlyIfMissing: true, saved: await getSavedOrgSettings() });
+      } catch (err) {
+        console.warn("Zoho CRM connected, but the business hours couldn't be read:", err);
+        outcome = "connected-no-hours";
+      }
     } else if (approvedEmail.toLowerCase() !== user.email.toLowerCase()) {
       await revokeRefreshToken(tokens.refreshToken);
       outcome = `mismatch&as=${encodeURIComponent(approvedEmail)}`;

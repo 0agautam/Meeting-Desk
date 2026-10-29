@@ -7,7 +7,7 @@ const src = fs.readFileSync(new URL("../lib/booking/slots.ts", import.meta.url),
 const out = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const m = { exports: {} };
 new Function("module", "exports", out)(m, m.exports); // slots.ts has no runtime imports
-const { listAvailableDays, suggestSlots, allDayBusy } = m.exports;
+const { listAvailableDays, suggestSlots, allDayBusy, zonedTimeToUtc, hoursOn } = m.exports;
 
 const host = { timezone: "America/Toronto", bufferBeforeMin: 15, bufferAfterMin: 15, workingHours: { days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00" } };
 const at = (iso) => new Date(`${iso}-04:00`); // Toronto is UTC-4 until Nov 1
@@ -66,5 +66,22 @@ assert.equal(slots[0].startUtc, "2026-10-28T13:00:00.000Z", "9:00-9:30 ends 90 m
 const tight = { bufferBeforeMin: 0, bufferAfterMin: 60, busy: [{ startTime: "2026-10-28T13:30:00Z", endTime: "2026-10-28T14:30:00Z" }] };
 slots = suggestSlots(host, { ...args, busy: [], attendeeBusy: [tight] });
 assert.equal(slots[0].startUtc, "2026-10-28T14:30:00.000Z", "a 9:30 block with 60 after: 9:00-9:30 is too close, so it starts at 10:30 (busy end + 0 before)");
+
+// Daylight saving: the same 9:00 Toronto is 13:00 UTC before the clocks go back (Nov 1, 2026) and 14:00 UTC after.
+assert.equal(zonedTimeToUtc("2026-10-30", "09:00", "America/Toronto").toISOString(), "2026-10-30T13:00:00.000Z", "summer time: 9:00 = 13:00 UTC");
+assert.equal(zonedTimeToUtc("2026-11-02", "09:00", "America/Toronto").toISOString(), "2026-11-02T14:00:00.000Z", "winter time: 9:00 = 14:00 UTC");
+assert.equal(zonedTimeToUtc("2026-03-09", "09:00", "America/Toronto").toISOString(), "2026-03-09T13:00:00.000Z", "after the clocks go forward (Mar 8, 2026)");
+const afterChange = suggestSlots(host, { durationMin: 30, bookings: [], busy: [], now: new Date("2026-11-02T10:00:00-05:00") });
+assert.equal(afterChange[0].startUtc, "2026-11-04T14:00:00.000Z", "slots follow winter time: Wednesday 9:00 Toronto = 14:00 UTC");
+
+// Different hours on particular weekdays (Zoho can have them): Wednesday 10:00-14:00, the other days 9:00-17:00.
+const perDay = { ...host, workingHours: { days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00", byDay: { 3: { start: "10:00", end: "14:00" } } } };
+assert.deepEqual(hoursOn(perDay.workingHours, 3), { start: "10:00", end: "14:00" }, "Wednesday has its own hours");
+assert.deepEqual(hoursOn(perDay.workingHours, 4), { start: "09:00", end: "17:00" }, "Thursday uses the usual hours");
+slots = suggestSlots(perDay, { ...args, busy: [] });
+assert.equal(slots[0].startUtc, "2026-10-28T14:00:00.000Z", "Wednesday starts at 10:00 Toronto");
+const wedBlocked = allDayBusy("2026-10-28", "2026-10-29", { timeZone: "America/Toronto", workHours: perDay.workingHours })[0];
+assert.equal(wedBlocked.startTime, "2026-10-28T14:00:00.000Z", "a day off on Wednesday blocks 10:00...");
+assert.equal(wedBlocked.endTime, "2026-10-28T18:00:00.000Z", "...to 14:00 Toronto");
 
 console.log("all checks passed");

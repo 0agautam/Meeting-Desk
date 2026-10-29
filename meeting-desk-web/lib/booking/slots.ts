@@ -1,4 +1,4 @@
-import type { Booking, OfferedSlot, SchedulingConstraints, Staff } from "@/lib/types";
+import type { Booking, OfferedSlot, SchedulingConstraints, Staff, WorkingHours } from "@/lib/types";
 
 /**
  * Slot generator. Always excludes this app's own Bookings (the double-booking
@@ -24,17 +24,23 @@ function widened(startMs: number, endMs: number, buffer: Pick<PersonBusy, "buffe
   return { start: startMs - buffer.bufferAfterMin * 60_000, end: endMs + buffer.bufferBeforeMin * 60_000 };
 }
 
-/** What a calendar read needs: the window, and the person's time zone and working hours (a day off blocks those hours). */
-export type BusyWindow = { startUtc: string; endUtc: string; timeZone: string; workHours: { start: string; end: string } };
+/** The working hours of one weekday (0 = Sunday): its own entry if the organisation has different hours that day, otherwise the usual ones. */
+export function hoursOn(hours: Pick<WorkingHours, "start" | "end" | "byDay">, weekday: number): { start: string; end: string } {
+  return hours.byDay?.[weekday] ?? { start: hours.start, end: hours.end };
+}
+
+/** What a calendar read needs: the window, and the time zone and working hours (a day off blocks those hours). */
+export type BusyWindow = { startUtc: string; endUtc: string; timeZone: string; workHours: Pick<WorkingHours, "start" | "end" | "byDay"> };
 
 /** A day off (an all-day event, dates YYYY-MM-DD, end exclusive) blocks the person's working hours on each of its days, nothing more. */
 export function allDayBusy(startDate: string, endDate: string, person: Pick<BusyWindow, "timeZone" | "workHours">, meta: { eventId?: string; title?: string } = {}): BusyInterval[] {
   const [y, m, d] = startDate.split("-").map(Number);
   const out: BusyInterval[] = [];
   for (let i = 0, day = startDate; i < 62 && (i === 0 || day < endDate); i++, day = dateToIso(new Date(Date.UTC(y, m - 1, d + i)))) {
+    const hours = hoursOn(person.workHours, weekdayOf(day));
     out.push({
-      startTime: zonedTimeToUtc(day, person.workHours.start, person.timeZone).toISOString(),
-      endTime: zonedTimeToUtc(day, person.workHours.end, person.timeZone).toISOString(),
+      startTime: zonedTimeToUtc(day, hours.start, person.timeZone).toISOString(),
+      endTime: zonedTimeToUtc(day, hours.end, person.timeZone).toISOString(),
       ...meta,
     });
   }
@@ -115,10 +121,9 @@ export function listDaySlots(
   busyIntervals: BusyInterval[] = [],
 ): { startUtc: string; endUtc: string; label: string }[] {
   const step = durationMin + Math.max(host.bufferBeforeMin, host.bufferAfterMin);
-  const [startH, startM] = host.workingHours.start.split(":").map(Number);
-  const [endH, endM] = host.workingHours.end.split(":").map(Number);
-  const dayStart = startH * 60 + startM;
-  const dayEnd = endH * 60 + endM;
+  const hours = hoursOn(host.workingHours, weekdayOf(dayIso));
+  const dayStart = toMinutes(hours.start);
+  const dayEnd = toMinutes(hours.end);
   const taken = new Set(existingBookings.filter((b) => b.status !== "failed").map((b) => b.startUtc));
 
   const widenedBusy = busyIntervals.map((b) => widened(new Date(b.startTime).getTime(), new Date(b.endTime).getTime(), host));
@@ -195,13 +200,11 @@ export function suggestSlots(
     for (const b of person.busy) blocked.push(widened(new Date(b.startTime).getTime(), new Date(b.endTime).getTime(), person));
   }
 
-  const [startH, startM] = host.workingHours.start.split(":").map(Number);
-  const [endH, endM] = host.workingHours.end.split(":").map(Number);
-  const dayStart = startH * 60 + startM;
-  const dayEnd = endH * 60 + endM;
-
   const picked: OfferedSlot[] = [];
   for (const dayIso of listAvailableDays(host, windowDays, { urgency: constraints?.urgency, now })) {
+    const hours = hoursOn(host.workingHours, weekdayOf(dayIso));
+    const dayStart = toMinutes(hours.start);
+    const dayEnd = toMinutes(hours.end);
     if (constraints?.earliestDate && dayIso < constraints.earliestDate) continue;
     if (constraints?.latestDate && dayIso > constraints.latestDate) continue;
     if (constraints?.avoidWeekdays.includes(weekdayOf(dayIso))) continue;

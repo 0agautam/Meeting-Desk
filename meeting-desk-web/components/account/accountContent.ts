@@ -16,9 +16,9 @@ export const ACCOUNT_PAGE = {
   connect: "Connect Zoho Calendar",
   disconnect: "Disconnect",
   reconnect: "Reconnect",
-  reconnectHelp: "Reconnect asks for your approval again. Do this when Meeting Desk says it needs new access, for example to use the CRM.",
+  reconnectHelp: "Reconnect asks for your approval again. Do this when Meeting Desk says your calendar needs reconnecting.",
   connectHelp: (email: string) =>
-    `You'll approve on Zoho's own screen — log in there as ${email}. It lets Meeting Desk read your calendar's busy times, create and delete the meetings it books, and read your Zoho CRM (search contacts and leads, list users). You can disconnect any time.`,
+    `You'll approve on Zoho's own screen — log in there as ${email}. It lets Meeting Desk read your calendar's busy times, create and delete the meetings it books,. You can disconnect any time.`,
   connectGoogle: "Connect Google Calendar",
   connectHelpGoogle: (email: string) =>
     `You'll approve on Google's own screen — sign in there as ${email}. It lets Meeting Desk read the busy times on your main calendar and create and delete the meetings it books. You can disconnect any time.`,
