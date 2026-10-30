@@ -1,7 +1,7 @@
 /** Copy for the sign-in screen. */
 export const LOGIN_PAGE = {
   metaTitle: "Sign in",
-  title: "Sign in to Meeting Desk",
+  title: "Sign in to Meeting Requests",
   lede: "Use the Zoho account you use for CRM. You need to be on the team list.",
   emailLabel: "Work email",
   emailPlaceholder: "you@amazingbusinessresults.ca",

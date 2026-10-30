@@ -8,7 +8,7 @@ export const ORG_CRM = {
   connect: "Connect Zoho CRM",
   reconnect: "Reconnect",
   disconnect: "Disconnect",
-  help: "You'll approve on Zoho's own screen. Use a long-lived account (ideally a shared admin account), because CRM search stops for everyone if it is deactivated. Meeting Desk only reads contacts, leads and users; it never changes the CRM.",
+  help: "You'll approve on Zoho's own screen. Use a long-lived account (ideally a shared admin account), because CRM search stops for everyone if it is deactivated. Meeting Requests only reads contacts, leads and users; it never changes the CRM.",
   messages: {
     connected: { tone: "good", text: "Zoho CRM connected for the whole team. Its time zone and business hours were copied below if none were saved." },
     "connected-no-hours": { tone: "bad", text: "Zoho CRM connected, but its business hours couldn't be read. Set the time zone and hours below, or try Refresh from CRM." },

@@ -11,7 +11,7 @@ export default function AppHeader({ user }: { user: Staff }) {
     <header className="bg-ink text-ground">
       <div className="flex h-14 w-full items-center gap-8 px-6 max-md:gap-4 max-md:px-4">
         <Link href="/" className="font-serif text-xl font-semibold text-ground no-underline hover:text-ground">
-          Meeting Desk
+          Meeting Requests
         </Link>
         <nav aria-label="Main" className="flex flex-1 gap-1">
           {navFor(user).map((item) => (

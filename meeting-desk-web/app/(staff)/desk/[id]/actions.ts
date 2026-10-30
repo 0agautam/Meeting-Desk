@@ -55,7 +55,7 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
   // Everyone joining must have a calendar we can read, or a time could be offered that clashes for them.
   const { people, checked, outside } = calendarPeople(request, host, staff);
   if (outside.length > 0) {
-    return { error: `${outside.map((a) => a.name).join(", ")} ${outside.length === 1 ? "isn't" : "aren't"} on the Meeting Desk team, so their calendar can't be reached. Add them in Settings, or take them off this request.` };
+    return { error: `${outside.map((a) => a.name).join(", ")} ${outside.length === 1 ? "isn't" : "aren't"} on the Meeting Requests team, so their calendar can't be reached. Add them in Settings, or take them off this request.` };
   }
   const missing = await withoutCalendar(people);
   if (missing.length > 0) {

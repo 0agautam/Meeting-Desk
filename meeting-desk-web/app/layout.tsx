@@ -24,8 +24,8 @@ const sourceSerif = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "Meeting Desk",
-    template: "%s · Meeting Desk",
+    default: "Meeting Requests",
+    template: "%s · Meeting Requests",
   },
   description: "ABR internal meeting requests and client booking.",
 };
