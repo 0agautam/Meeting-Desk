@@ -47,6 +47,18 @@ export async function getCalendarAccount(staffId: string): Promise<CalendarAccou
   return row ? rowToAccount(row) : null;
 }
 
+/** Who has approved which calendar, for the admin's team table: staff id -> provider and status. Never includes the tokens. */
+export async function listCalendarStatuses(): Promise<Map<string, Pick<CalendarAccount, "provider" | "status" | "accountEmail">>> {
+  const rows: CalendarAccount[] = [];
+  const app = await tryGetCatalystApp();
+  if (!app) rows.push(...memory().values());
+  else {
+    const res = await app.datastore().table(TABLE).getPagedRows({ maxRows: 200 });
+    rows.push(...res.data.map(rowToAccount));
+  }
+  return new Map(rows.map((a) => [a.staffId, { provider: a.provider, status: a.status, accountEmail: a.accountEmail }]));
+}
+
 /** Saves (or replaces) the person's connection. */
 export async function saveCalendarAccount(account: CalendarAccount): Promise<void> {
   const app = await tryGetCatalystApp();

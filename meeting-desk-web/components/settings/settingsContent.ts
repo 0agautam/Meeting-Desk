@@ -50,6 +50,12 @@ export const SETTINGS_PAGE = {
 } as const;
 
 export const CALENDAR_LABEL = { google: "Google", zoho: "Zoho" } as const;
+/** The second line under the calendar pill in the team table: has the person approved it? */
+export const CALENDAR_STATE = {
+  connected: { label: "Connected", className: "text-status-booked-text" },
+  not_connected: { label: "Not connected yet", className: "text-status-needs-info-text" },
+  needs_reconnect: { label: "Needs reconnecting", className: "text-status-needs-info-text" },
+} as const;
 export const CALENDAR_PILL_CLASS = {
   google: "bg-status-email-sent text-status-email-sent-text",
   zoho: "bg-status-needs-info text-status-needs-info-text",

@@ -5,6 +5,7 @@ import OrganisationCrm from "@/components/settings/OrganisationCrm";
 import OrganisationHours from "@/components/settings/OrganisationHours";
 import { getSavedOrgSettings } from "@/lib/org/settings";
 import TeamTable from "@/components/settings/TeamTable";
+import { listCalendarStatuses } from "@/lib/calendar/accountStore";
 import { ORGANISATION_CRM_ID, getCrmAccount } from "@/lib/crm/accountStore";
 import { SETTINGS_PAGE } from "@/components/settings/settingsContent";
 import { requireRole } from "@/lib/auth/current-user";
@@ -17,7 +18,12 @@ export const metadata: Metadata = { title: SETTINGS_PAGE.metaTitle };
 export default async function SettingsPage({ searchParams }: PageProps<"/settings">) {
   const user = await requireRole("admin");
   const { edit, add, error, crm, hours } = await searchParams;
-  const [staff, crmAccount, savedOrg] = await Promise.all([listStaff(), getCrmAccount(ORGANISATION_CRM_ID), getSavedOrgSettings()]);
+  const [staff, crmAccount, savedOrg, calendars] = await Promise.all([
+    listStaff(),
+    getCrmAccount(ORGANISATION_CRM_ID),
+    getSavedOrgSettings(),
+    listCalendarStatuses(),
+  ]);
   const crmMessage = typeof crm === "string" ? ORG_CRM.messages[crm] : undefined;
   const hoursMessage = typeof hours === "string" ? ORG_HOURS.messages[hours] : undefined;
   const editId = typeof edit === "string" ? edit : undefined;
@@ -27,6 +33,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
     <div className={`${PAGE_BODY} flex-col`}>
       <TeamTable
         staff={staff}
+        calendars={calendars}
         currentUserId={user.id}
         editId={editId}
         editData={editData}

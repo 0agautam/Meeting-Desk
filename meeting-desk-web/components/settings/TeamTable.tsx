@@ -6,11 +6,13 @@ import Modal from "@/components/ui/Modal";
 import { roleLabel } from "@/lib/auth/permissions";
 import type { Staff } from "@/lib/types";
 import { BTN_PRIMARY, PAGE_LEDE, PAGE_TITLE, PANEL } from "@/lib/ui/classes";
-import { CALENDAR_LABEL, CALENDAR_PILL_CLASS, SETTINGS_PAGE } from "./settingsContent";
+import type { CalendarAccount } from "@/lib/calendar/accountStore";
+import { CALENDAR_LABEL, CALENDAR_PILL_CLASS, CALENDAR_STATE, SETTINGS_PAGE } from "./settingsContent";
 
 /** Wireframe 4: the team table, plus the Edit or Add panel for whichever row is active. */
 export default function TeamTable({
   staff,
+  calendars,
   currentUserId,
   editId,
   editData,
@@ -18,6 +20,8 @@ export default function TeamTable({
   error,
 }: {
   staff: Staff[];
+  /** Each person's saved calendar approval (no tokens), by staff id. */
+  calendars: Map<string, Pick<CalendarAccount, "provider" | "status">>;
   currentUserId: string;
   editId?: string;
   /** What deleting the person being edited would also remove (counted by the page). */
@@ -58,9 +62,20 @@ export default function TeamTable({
               <td className="px-2 py-3">{roleLabel(s.roles)}</td>
               <td className="px-2 py-3">
                 {s.calendarProvider ? (
-                  <span className={`inline-flex h-7 items-center rounded-full px-2.5 text-xs font-semibold ${CALENDAR_PILL_CLASS[s.calendarProvider]}`}>
-                    {CALENDAR_LABEL[s.calendarProvider]}
-                  </span>
+                  <div className="flex flex-col items-start gap-1">
+                    <span className={`inline-flex h-7 items-center rounded-full px-2.5 text-xs font-semibold ${CALENDAR_PILL_CLASS[s.calendarProvider]}`}>
+                      {CALENDAR_LABEL[s.calendarProvider]}
+                    </span>
+                    {(() => {
+                      const link = calendars.get(s.id);
+                      const state = !link || link.provider !== s.calendarProvider ? "not_connected" : link.status === "connected" ? "connected" : "needs_reconnect";
+                      return (
+                        <span className={`text-xs font-semibold ${CALENDAR_STATE[state].className}`}>
+                          {CALENDAR_STATE[state].label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 ) : (
                   <span className="text-muted">–</span>
                 )}
