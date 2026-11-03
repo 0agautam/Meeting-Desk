@@ -69,7 +69,7 @@ export async function getBusyIntervals(accessToken: string, opts: BusyWindow): P
       if (!res.ok) throw new Error(`getBusyIntervals failed: ${res.status} ${text.slice(0, 300)}`);
       const events = text ? ((JSON.parse(text) as { events?: ZohoEvent[] }).events ?? []) : [];
       for (const event of events) {
-        const dayOf = (value: unknown) => /^(d{4})(d{2})(d{2})/.exec(String(value ?? ""));
+        const dayOf = (value: unknown) => /^(\d{4})(\d{2})(\d{2})/.exec(String(value ?? ""));
         if (event.isallday) {
           const first = dayOf(event.dateandtime?.start);
           const last = dayOf(event.dateandtime?.end);
