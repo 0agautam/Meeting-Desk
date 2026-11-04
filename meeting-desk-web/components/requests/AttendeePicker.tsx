@@ -45,6 +45,7 @@ export default function AttendeePicker({
   function add(user: CrmUser) {
     setPicked((prev) => [...prev, { ...user, required: true }]);
     setQuery("");
+    setOpen(false);
   }
   const setRequired = (id: string, required: boolean) => setPicked((prev) => prev.map((a) => (a.id === id ? { ...a, required } : a)));
 
@@ -124,6 +125,7 @@ export default function AttendeePicker({
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
+            onClick={() => setOpen(true)}
             onKeyDown={(e) => {
               if (e.key === "Escape") setOpen(false);
               if (e.key === "Enter") {
