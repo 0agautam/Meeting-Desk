@@ -9,7 +9,6 @@ import { listAvailableDays, localDayOf, suggestSlots, type PersonBusy } from "@/
 import { requireRole } from "@/lib/auth/current-user";
 import { buildAvailabilityQuestion, buildEmailDraft } from "@/components/desk/deskContent";
 import { addEvent, getRequest, listBookings, listStaff, setConstraints, setEmailDraft, setOfferedSlots, setRequestStatus } from "@/lib/data";
-import { getBaseUrl } from "@/lib/http/baseUrl";
 import type { EmailDraft, Staff } from "@/lib/types";
 
 
@@ -146,16 +145,7 @@ async function runGenerate(user: Staff, requestId: string, opts: { rereadNotes?:
     subject: request.subject,
     to: request.to,
     cc: request.cc,
-    body: buildEmailDraft({
-      clientEmail: request.to[0],
-      hostName: host.name,
-      subject: request.subject,
-      durationMin: request.durationMin,
-      coordinatorName: user.name,
-      slots: held,
-      timeZone: host.timezone,
-      bookingUrl: `${await getBaseUrl()}/book/${host.slug}/${request.id}`,
-    }),
+    body: buildEmailDraft({ clientEmail: request.to[0], coordinatorName: user.name, slots: held, timeZone: host.timezone }),
   });
   revalidatePath(`/desk/${requestId}`);
   return notice ? { notice, askMessage } : null;
@@ -249,6 +239,24 @@ export async function markAsSent(formData: FormData) {
   if (!request || request.offeredSlots.length === 0) return;
   await setRequestStatus(requestId, "email_sent");
   await addEvent({ requestId, type: "marked_sent", actorId: user.id, version: request.version });
+  revalidatePath("/desk");
+  revalidatePath(`/desk/${requestId}`);
+}
+
+/**
+ * "Mark as booked" — the client agreed a time and the coordinator sent the invite herself (there is no booking link yet).
+ * Moves the request to booked and takes the grey holds off the calendars. Only from "email sent".
+ */
+export async function markAsBooked(formData: FormData) {
+  const user = await requireRole("coordinator");
+  const requestId = String(formData.get("requestId") ?? "");
+  const request = await getRequest(requestId);
+  if (!request || request.status !== "email_sent") return;
+  const failed = await releaseHolds(request.hostId, request.offeredSlots);
+  // Holds that couldn't be removed keep their ids, so "Release holds" can try again.
+  if (failed === 0) await setOfferedSlots(requestId, stripHolds(request.offeredSlots));
+  await setRequestStatus(requestId, "booked");
+  await addEvent({ requestId, type: "marked_booked", actorId: user.id, version: request.version });
   revalidatePath("/desk");
   revalidatePath(`/desk/${requestId}`);
 }

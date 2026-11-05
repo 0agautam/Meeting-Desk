@@ -114,6 +114,7 @@ export type RequestEventType =
   | "email_copied"
   | "marked_sent"
   | "booked"
+  | "marked_booked"
   | "booking_failed";
 
 export type FieldChange = { from: unknown; to: unknown };

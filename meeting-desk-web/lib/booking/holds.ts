@@ -53,7 +53,7 @@ export async function placeHolds(
       endUtc: slot.endUtc,
       timezone: person.timezone,
       color: HOLD_COLOR,
-      description: "Held by Meeting Requests while the client picks a time. It is removed when they book. If the meeting is arranged another way, delete this event.",
+      description: "Held by Meeting Requests while the client picks a time. It is removed when the coordinator marks the meeting as booked. If the meeting is arranged another way, delete this event.",
     });
   try {
     for (const slot of slots) {

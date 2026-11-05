@@ -125,6 +125,7 @@ export const EVENT_COPY: Record<string, string> = {
   email_copied: "The coordinator copied the email",
   marked_sent: "The coordinator marked the email as sent",
   booked: "{message} booked a time",
+  marked_booked: "The coordinator marked the meeting as booked",
   booking_failed: "A booking attempt failed",
 } as const;
 

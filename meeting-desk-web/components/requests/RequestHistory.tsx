@@ -10,6 +10,7 @@ const DOT_COLOR: Record<string, string> = {
   email_copied: "bg-accent",
   marked_sent: "bg-accent",
   booked: "bg-accent",
+  marked_booked: "bg-accent",
   booking_failed: "bg-attention",
 };
 

@@ -76,7 +76,9 @@ export const DESK_DETAIL = {
   saveAndRegenerate: "Save and regenerate times",
   rereadNotes: "Read the notes again",
   working: "Working…",
-  holdsNote: "Each time is held as a grey tentative event on the host's calendar. The holds are removed when the client books, when you regenerate, or when the host edits the request. If you book the meeting another way, release them here or delete them in the calendar.",
+  holdsNote: "Each time is held as a grey tentative event on the calendars of the host and the ABR attendees. The holds are removed when you mark the meeting as booked, when you regenerate, or when the host edits the request. You can also release them here.",
+  markAsBooked: "Mark as booked",
+  markAsBookedHelp: "Once the client has agreed a time and you have sent the invite from your own calendar, mark it as booked. The grey holds come off the calendars.",
   offeredTitle: "Times offered to the client",
   offeredNote: (tz: string) => `Shown in ${tz}. Checked against the host's calendar when generated.`,
 } as const;
@@ -91,6 +93,7 @@ export const DESK_EVENT_COPY: Record<string, string> = {
   email_copied: "You copied the email",
   marked_sent: "You marked the email as sent",
   booked: "{message} booked a time",
+  marked_booked: "You marked the meeting as booked",
   booking_failed: "A booking attempt failed",
 };
 
@@ -99,7 +102,7 @@ export const DESK_NEXT_ACTION: Record<string, string> = {
   new: "New — review and reply",
   needs_info: "Waiting on the host",
   updated: "Your turn: copy and send the email",
-  email_sent: "Waiting on the client",
+  email_sent: "Waiting on the client: mark it as booked once a time is agreed",
 };
 
 /** Applies the toolbar's status filter + search query (wireframe 3). */
@@ -121,14 +124,6 @@ export function filterDeskRequests(
     });
 }
 
-const DURATION_PHRASE: Record<number, string> = {
-  30: "30-minute",
-  45: "45-minute",
-  60: "one-hour",
-  90: "90-minute",
-  120: "two-hour",
-};
-
 /** Client's first name, guessed from their email's local part — Phase 1 has no CRM contact name yet. */
 function guessFirstName(email?: string): string {
   if (!email) return "there";
@@ -145,40 +140,35 @@ export function formatSlot(slot: OfferedSlot, timeZone: string): string {
   return `${day} · ${time.format(start)} – ${time.format(new Date(slot.endUtc))}`;
 }
 
-/** "Colombia Standard Time" — spelled out so the client knows which clock the times are on. */
-export function timeZoneLabel(timeZone: string): string {
-  return (
-    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "long" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")
-      ?.value ?? timeZone
-  );
+/** "Eastern Standard Time" — spelled out so the client knows which clock the times are on. Named as of the given time (standard or daylight changes with the date), today if none. */
+export function timeZoneLabel(timeZone: string, at?: Pick<OfferedSlot, "startUtc">): string {
+  const date = at ? new Date(at.startUtc) : new Date();
+  return new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "long" }).formatToParts(date).find((p) => p.type === "timeZoneName")?.value ?? timeZone;
 }
 
-/** Builds the copyable email draft (wireframe 3). Never sent by the app — the coordinator pastes it herself. */
+/**
+ * Builds the copyable email draft (wireframe 3). Never sent by the app — the coordinator pastes it herself.
+ * No booking link for now: the client replies with a time (or other times) and the coordinator sends the invite.
+ */
 export function buildEmailDraft(input: {
   clientEmail?: string;
-  hostName: string;
-  subject: string;
-  durationMin: number;
   coordinatorName: string;
   slots: OfferedSlot[];
   timeZone: string;
-  bookingUrl: string;
 }): string {
-  const duration = DURATION_PHRASE[input.durationMin] ?? `${input.durationMin}-minute`;
-  const times = input.slots.map((s) => `  • ${formatSlot(s, input.timeZone)}`).join("\n");
+  const times = input.slots.map((s) => `• ${formatSlot(s, input.timeZone)}`).join("\n");
   return `Hi ${guessFirstName(input.clientEmail)},
 
-I'm ${input.coordinatorName} with Amazing Business Results, working alongside ${input.hostName}. I'm setting up a ${duration} ${input.subject.toLowerCase()} with you.
+I hope my email finds you well.
 
-${input.hostName} is free at these times (${timeZoneLabel(input.timeZone)}):
+Are you available on:
 ${times}
 
-Pick the one that suits you here and it goes straight into ${input.hostName}'s calendar:
-${input.bookingUrl}
+All times are in ${timeZoneLabel(input.timeZone, input.slots[0])}.
 
-If none of these work, just reply with a few times that do.
+If none of these work, please provide us with your availability and we will do our best to accommodate your schedule. Once we agree on a time, I will send you the meeting invite with the Zoom link.
 
-Best,
+Best regards,
 ${input.coordinatorName}`;
 }
 

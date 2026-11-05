@@ -6,7 +6,6 @@ import DeskToolbar from "@/components/desk/DeskToolbar";
 import { DESK_PAGE, deskQuery, filterDeskRequests } from "@/components/desk/deskContent";
 import { requireRole } from "@/lib/auth/current-user";
 import { getRequest, listEvents, listRequests, listStaff } from "@/lib/data";
-import { getBaseUrl } from "@/lib/http/baseUrl";
 import { APP_SHELL, SHELL_BODY } from "@/lib/ui/classes";
 
 export const metadata: Metadata = { title: DESK_PAGE.metaTitle };
@@ -27,13 +26,7 @@ export default async function DeskDetailPage({ params, searchParams }: PageProps
       <DeskToolbar requests={requests} staff={staff} status={String(status)} q={String(q)} host={String(host)} />
       <div className={SHELL_BODY}>
         <DeskQueue requests={filtered} staff={staff} activeId={id} query={deskQuery({ status: String(status), q: String(q), host: String(host) })} />
-        <DeskDetailPanel
-          request={request}
-          events={events}
-          staff={staff}
-          coordinatorName={user.name}
-          baseUrl={await getBaseUrl()}
-        />
+        <DeskDetailPanel request={request} events={events} staff={staff} coordinatorName={user.name} />
       </div>
     </div>
   );

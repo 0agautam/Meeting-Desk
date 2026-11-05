@@ -1,4 +1,4 @@
-import { markAsSent, releaseRequestHolds } from "@/app/(staff)/desk/[id]/actions";
+import { markAsBooked, markAsSent, releaseRequestHolds } from "@/app/(staff)/desk/[id]/actions";
 import AskInfoForm from "@/components/desk/AskInfoForm";
 import ConstraintsPanel from "@/components/desk/ConstraintsPanel";
 import EmailEditor from "@/components/desk/EmailEditor";
@@ -30,14 +30,12 @@ export default function DeskDetailPanel({
   events,
   staff,
   coordinatorName = "The coordinator",
-  baseUrl = "",
 }: {
   request?: MeetingRequest;
   events: RequestEvent[];
   staff: Staff[];
   /** The signed-in coordinator — the name the email is written from. */
   coordinatorName?: string;
-  baseUrl?: string;
 }) {
   if (!request) {
     return (
@@ -64,16 +62,7 @@ export default function DeskDetailPanel({
           subject: request.subject,
           to: request.to,
           cc: request.cc,
-          body: buildEmailDraft({
-            clientEmail: request.to[0],
-            hostName: host?.name ?? "the host",
-            subject: request.subject,
-            durationMin: request.durationMin,
-            coordinatorName,
-            slots: request.offeredSlots,
-            timeZone,
-            bookingUrl: `${baseUrl}/book/${host?.slug ?? ""}/${request.id}`,
-          }),
+          body: buildEmailDraft({ clientEmail: request.to[0], coordinatorName, slots: request.offeredSlots, timeZone }),
         }
       : null);
 
@@ -144,6 +133,11 @@ export default function DeskDetailPanel({
             {hasTimes ? <MarkAsSentButton requestId={request.id} /> : null}
             <AskInfoForm requestId={request.id} hostName={host?.name ?? "the host"} />
           </div>
+        ) : request.status === "email_sent" ? (
+          <div className="flex flex-col items-start gap-2">
+            <MarkAsBookedButton requestId={request.id} />
+            <p className={`${META} m-0 max-w-[520px]`}>{DESK_DETAIL.markAsBookedHelp}</p>
+          </div>
         ) : (
           <p className={META}>{DESK_NEXT_ACTION[request.status]}</p>
         )}
@@ -160,6 +154,20 @@ export default function DeskDetailPanel({
         footer={DESK_DETAIL.historyFooter}
       />
     </section>
+  );
+}
+
+function MarkAsBookedButton({ requestId }: { requestId: string }) {
+  return (
+    <form action={markAsBooked}>
+      <input type="hidden" name="requestId" value={requestId} />
+      <button
+        type="submit"
+        className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-field border border-field-line bg-card px-[18px] font-semibold text-ink hover:bg-ground"
+      >
+        {DESK_DETAIL.markAsBooked}
+      </button>
+    </form>
   );
 }
 
