@@ -41,10 +41,15 @@ function parseBuffers(formData: FormData): { bufferBeforeMin: number; bufferAfte
 }
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const MAX_NAME_LENGTH = 100;
 
-/** Wireframe 4's "Save" — updates a person's roles, calendar, buffers and booking link name. Admin only. */
+/**
+ * Wireframe 4's "Save" — updates a person's name, sign-in email, calendar account email, roles, calendar, buffers and
+ * booking link name. Each of name, email, calendar account email and booking link name is only changed if the form
+ * carries it. Changing someone's sign-in email signs them out everywhere (they sign in with the new one). Admin only.
+ */
 export async function saveStaffSettings(formData: FormData) {
-  await requireRole("admin");
+  const admin = await requireRole("admin");
   const id = String(formData.get("staffId") ?? "");
   const roles = parseRoles(formData);
   const calendarProvider = parseCalendar(formData);
@@ -69,7 +74,40 @@ export async function saveStaffSettings(formData: FormData) {
     if (staff.some((s) => s.id !== id && s.slug === slug)) redirect(`/settings?edit=${id}&error=slug-taken`);
   }
 
-  await updateStaff(id, { roles, calendarProvider, ...buffers, ...(slug !== undefined ? { slug } : {}) });
+  // Name and sign-in email.
+  const back = `/settings?edit=${id}&error=`;
+  const nameInput = formData.get("name");
+  const name = typeof nameInput === "string" ? nameInput.trim() : undefined;
+  if (name !== undefined && (!name || name.length > MAX_NAME_LENGTH)) redirect(`${back}invalid`);
+  const emailInput = formData.get("email");
+  const email = typeof emailInput === "string" ? emailInput.trim() : undefined;
+  if (email !== undefined && !EMAIL_PATTERN.test(email)) redirect(`${back}invalid`);
+  const emailChanged = email !== undefined && email.toLowerCase() !== target?.email.toLowerCase();
+  if (emailChanged) {
+    if (id === admin.id) redirect(`${back}self-email`); // a typo here would lock the only person who can fix it out
+    if (staff.some((s) => s.id !== id && s.email.toLowerCase() === email.toLowerCase())) redirect(`${back}duplicate`);
+  }
+
+  // The account the person's calendar is in, when it isn't their sign-in email ("" = the same as the sign-in email).
+  const calendarInput = formData.get("calendarEmail");
+  const calendarEmail = typeof calendarInput === "string" ? calendarInput.trim() : undefined;
+  if (calendarEmail) {
+    if (!EMAIL_PATTERN.test(calendarEmail)) redirect(`${back}calendar-email-invalid`);
+    const sameAddress = (a?: string) => !!a && a.toLowerCase() === calendarEmail.toLowerCase();
+    if (staff.some((s) => s.id !== id && (sameAddress(s.email) || sameAddress(s.calendarEmail)))) redirect(`${back}calendar-email-taken`);
+  }
+
+  await updateStaff(id, {
+    roles,
+    calendarProvider,
+    ...buffers,
+    ...(slug !== undefined ? { slug } : {}),
+    ...(name !== undefined && name !== target?.name ? { name } : {}),
+    ...(emailChanged ? { email } : {}),
+    // Only sent when it changes, so saving anything else works even before the Staff table has the calendar_email column.
+    ...(calendarEmail !== undefined && calendarEmail !== (target?.calendarEmail ?? "") ? { calendarEmail } : {}),
+  });
+  if (emailChanged) await deleteSessionsForStaff(id);
   revalidatePath("/settings");
   redirect("/settings");
 }

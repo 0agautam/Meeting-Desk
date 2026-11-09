@@ -13,7 +13,7 @@ import { ZOHO_CRM_SCOPES, ZOHO_PURPOSE_COOKIE, ZOHO_STATE_COOKIE, buildAuthorize
 import { ORGANISATION_CRM_ID, clearOrganisationApproval, getCrmAccount } from "@/lib/crm/accountStore";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
-import type { CalendarProvider } from "@/lib/types";
+import { calendarEmailOf, type CalendarProvider } from "@/lib/types";
 
 /** Providers a person can pick. */
 const SELECTABLE_PROVIDERS: CalendarProvider[] = ["zoho", "google"];
@@ -50,7 +50,7 @@ export async function connectGoogle() {
   if (!client) redirect("/account?google=not-configured");
 
   const state = await startState(GOOGLE_STATE_COOKIE, "/api/google");
-  redirect(buildGoogleAuthorizeUrl({ clientId: client.clientId, redirectUri: `${await getBaseUrl()}/api/google/callback`, state, loginHint: user.email }));
+  redirect(buildGoogleAuthorizeUrl({ clientId: client.clientId, redirectUri: `${await getBaseUrl()}/api/google/callback`, state, loginHint: calendarEmailOf(user) }));
 }
 
 /**

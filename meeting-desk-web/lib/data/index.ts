@@ -69,7 +69,7 @@ export async function getStaffBySlug(slug: string): Promise<Staff | undefined> {
 
 export async function updateStaff(
   id: string,
-  patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles" | "slug">>,
+  patch: Partial<Pick<Staff, "name" | "email" | "calendarEmail" | "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles" | "slug">>,
 ): Promise<Staff> {
   return withOrgSettings(await updateStaffInStore(id, patch), await getOrgSettings());
 }

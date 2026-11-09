@@ -4,7 +4,7 @@ export const ACCOUNT_PAGE = {
   title: "My settings",
   lede: (email: string) => `Signed in as ${email}.`,
   calendarTitle: "Calendar",
-  calendarLede: "Meeting Requests reads your busy times to offer the client free slots, and puts booked meetings in your calendar.",
+  calendarLede: "Meeting Requests reads your busy times to offer the client free slots, and puts grey tentative holds on your calendar for the times it offers.",
   providerLabel: "Calendar provider",
   providerHelp: "One at a time. Switching asks you to approve the new one.",
   providerNone: "Choose…",
@@ -18,10 +18,10 @@ export const ACCOUNT_PAGE = {
   reconnect: "Reconnect",
   reconnectHelp: "Reconnect asks for your approval again. Do this when Meeting Requests says your calendar needs reconnecting.",
   connectHelp: (email: string) =>
-    `You'll approve on Zoho's own screen — log in there as ${email}. It lets Meeting Requests read your calendar's busy times, create and delete the meetings it books,. You can disconnect any time.`,
+    `You'll approve on Zoho's own screen — log in there as ${email}. It lets Meeting Requests read your calendar's busy times and create and delete its tentative holds. You can disconnect any time.`,
   connectGoogle: "Connect Google Calendar",
   connectHelpGoogle: (email: string) =>
-    `You'll approve on Google's own screen — sign in there as ${email}. It lets Meeting Requests read the busy times on your main calendar and create and delete the meetings it books. You can disconnect any time.`,
+    `You'll approve on Google's own screen — sign in there as ${email}. It lets Meeting Requests read the busy times on your main calendar and create and delete its tentative holds. You can disconnect any time.`,
   pickProviderFirst: "Choose a provider above to connect.",
   bufferTitle: "Buffer",
   bufferBeforeLabel: "Buffer before meetings",
@@ -38,7 +38,7 @@ export const ZOHO_MESSAGES: Record<string, { tone: "good" | "bad"; text: (as?: s
   mismatch: {
     tone: "bad",
     text: (as, email) =>
-      `You approved as ${as ?? "a different account"}, but you're signed in here as ${email}. Nothing was connected. Log in to Zoho as ${email} (a private window helps) and try again.`,
+      `You approved as ${as ?? "a different account"}, but your calendar account should be ${email}. Nothing was connected. Log in to Zoho as ${email} (a private window helps) and try again. If your calendar is in a different account, ask an admin to set it in Settings.`,
   },
   state: { tone: "bad", text: () => "That approval didn't start from this page or took too long. Please click Connect again." },
   error: { tone: "bad", text: () => "Something went wrong while connecting. Please try again." },
@@ -56,7 +56,7 @@ export const GOOGLE_MESSAGES: Record<string, BannerMessage> = {
   mismatch: {
     tone: "bad",
     text: (as, email) =>
-      `You approved as ${as ?? "a different account"}, but you're signed in here as ${email}. Nothing was connected. Sign in to Google as ${email} (a private window helps) and try again.`,
+      `You approved as ${as ?? "a different account"}, but your calendar account should be ${email}. Nothing was connected. Sign in to Google as ${email} (a private window helps) and try again. If your calendar is in a different account, ask an admin to set it in Settings.`,
   },
   state: { tone: "bad", text: () => "That approval didn't start from this page or took too long. Please click Connect again." },
   error: { tone: "bad", text: () => "Something went wrong while connecting. Please try again." },

@@ -6,6 +6,7 @@ import { BUFFER_OPTIONS } from "@/components/settings/settingsContent";
 import { requireUser } from "@/lib/auth/current-user";
 import { roleLabel } from "@/lib/auth/permissions";
 import { getCalendarAccount } from "@/lib/calendar/accountStore";
+import { calendarEmailOf } from "@/lib/types";
 import { BTN, FIELD_LABEL, FIELD_SELECT, META, PAGE_BODY, PAGE_LEDE, PAGE_TITLE, PANEL, SECTION_TITLE } from "@/lib/ui/classes";
 
 export const metadata: Metadata = { title: ACCOUNT_PAGE.metaTitle };
@@ -19,7 +20,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
   // The banner for whichever approval the person just came back from.
   const banner = (value: string | string[] | undefined, messages: typeof ZOHO_MESSAGES) => {
     const message = typeof value === "string" ? messages[value] : undefined;
-    return message ? { tone: message.tone, text: message.text(typeof as === "string" ? as : undefined, user.email) } : undefined;
+    return message ? { tone: message.tone, text: message.text(typeof as === "string" ? as : undefined, calendarEmailOf(user)) } : undefined;
   };
   const calendarMessage = banner(zoho, ZOHO_MESSAGES) ?? banner(google, GOOGLE_MESSAGES);
 

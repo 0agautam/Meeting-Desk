@@ -1,6 +1,6 @@
 import { connectGoogle, connectZoho, disconnectCalendar, saveCalendarProvider } from "@/app/(staff)/account/actions";
 import type { CalendarAccount } from "@/lib/calendar/accountStore";
-import type { Staff } from "@/lib/types";
+import { calendarEmailOf, type Staff } from "@/lib/types";
 import { BTN, BTN_PRIMARY, FIELD_LABEL, FIELD_SELECT, META, SECTION_TITLE } from "@/lib/ui/classes";
 import { ACCOUNT_PAGE } from "./accountContent";
 
@@ -82,7 +82,7 @@ export default function CalendarConnection({
               </button>
             </form>
             <p className={`${META} m-0 max-w-[520px]`}>
-              {user.calendarProvider === "google" ? ACCOUNT_PAGE.connectHelpGoogle(user.email) : ACCOUNT_PAGE.connectHelp(user.email)}
+              {user.calendarProvider === "google" ? ACCOUNT_PAGE.connectHelpGoogle(calendarEmailOf(user)) : ACCOUNT_PAGE.connectHelp(calendarEmailOf(user))}
             </p>
           </div>
         )

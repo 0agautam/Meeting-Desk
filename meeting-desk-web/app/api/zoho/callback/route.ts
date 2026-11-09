@@ -17,6 +17,7 @@ import { copyBusinessHoursFromCrm } from "@/lib/crm/businessHours";
 import { getSavedOrgSettings } from "@/lib/org/settings";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
+import { calendarEmailOf } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
         console.warn("Zoho CRM connected, but the business hours couldn't be read:", err);
         outcome = "connected-no-hours";
       }
-    } else if (approvedEmail.toLowerCase() !== user.email.toLowerCase()) {
+    } else if (approvedEmail.toLowerCase() !== calendarEmailOf(user).toLowerCase()) {
       await revokeRefreshToken(tokens.refreshToken);
       outcome = `mismatch&as=${encodeURIComponent(approvedEmail)}`;
     } else {

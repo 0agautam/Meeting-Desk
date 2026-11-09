@@ -6,6 +6,7 @@ import { saveCalendarAccount } from "@/lib/calendar/accountStore";
 import { GOOGLE_CALENDAR_SCOPE, GOOGLE_STATE_COOKIE, exchangeGoogleCode, fetchGoogleEmail, googleClient, revokeGoogleToken } from "@/lib/calendar/googleOauth";
 import { updateStaff } from "@/lib/data";
 import { getBaseUrl } from "@/lib/http/baseUrl";
+import { calendarEmailOf } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,8 @@ function sameText(a: string, b: string): boolean {
 
 /**
  * Where Google sends the browser back after the person approves. Same checks as the Zoho return: the person
- * is signed in here, the state matches, the Google account that approved has the same email as their team-list
- * entry, and they really allowed calendar access (Google lets people untick it). Otherwise nothing is saved.
+ * is signed in here, the state matches, the Google account that approved is the one an admin expects for them (their
+ * team-list email, or their calendar account email if one is set), and they really allowed calendar access (Google lets people untick it). Otherwise nothing is saved.
  */
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     const tokens = await exchangeGoogleCode({ code, redirectUri: `${await getBaseUrl()}/api/google/callback`, ...client });
     const approvedEmail = await fetchGoogleEmail(tokens.accessToken);
 
-    if (approvedEmail.toLowerCase() !== user.email.toLowerCase()) {
+    if (approvedEmail.toLowerCase() !== calendarEmailOf(user).toLowerCase()) {
       await revokeGoogleToken(tokens.refreshToken);
       outcome = `mismatch&as=${encodeURIComponent(approvedEmail)}`;
     } else if (!tokens.scope.split(" ").includes(GOOGLE_CALENDAR_SCOPE)) {

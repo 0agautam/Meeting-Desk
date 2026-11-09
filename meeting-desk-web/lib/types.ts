@@ -30,7 +30,14 @@ export type Staff = {
   timezone: string;
   /** Public booking link: /book/<slug> */
   slug: string;
+  /** The Google or Zoho account the person's calendar is in, when it isn't their sign-in email. Empty or missing = the same as `email`. */
+  calendarEmail?: string;
 };
+
+/** The account a person must approve their calendar with: their calendar account email if an admin set one, otherwise their sign-in email. */
+export function calendarEmailOf(staff: Pick<Staff, "email" | "calendarEmail">): string {
+  return staff.calendarEmail?.trim() || staff.email;
+}
 
 export type RequestStatus = "new" | "needs_info" | "updated" | "email_sent" | "booked";
 

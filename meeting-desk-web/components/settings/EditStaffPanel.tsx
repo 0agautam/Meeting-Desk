@@ -4,7 +4,7 @@ import { BTN, BTN_PRIMARY, FIELD_INPUT, FIELD_LABEL, FIELD_SELECT } from "@/lib/
 import RolesField from "./RolesField";
 import { BUFFER_OPTIONS, CALENDAR_OPTIONS, SETTINGS_PAGE } from "./settingsContent";
 
-/** The fields of the Edit popup (roles, calendar, buffer), then the delete section; the popup frame and title come from TeamTable. */
+/** The fields of the Edit popup (name, email, calendar, calendar account email, buffer, roles), then the delete section; the popup frame and title come from TeamTable. */
 export default function EditStaffPanel({ staff, error, isSelf, data }: { staff: Staff; error?: string; isSelf: boolean; data: { requests: number; bookings: number } }) {
   const hasData = data.requests > 0 || data.bookings > 0;
   return (
@@ -12,6 +12,19 @@ export default function EditStaffPanel({ staff, error, isSelf, data }: { staff: 
       <form action={saveStaffSettings} className="flex flex-col gap-5">
         <input type="hidden" name="staffId" value={staff.id} />
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 max-sm:grid-cols-1">
+          <div>
+            <label className={FIELD_LABEL} htmlFor="name">
+              {SETTINGS_PAGE.nameLabel}
+            </label>
+            <input id="name" name="name" type="text" required maxLength={100} defaultValue={staff.name} autoComplete="off" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor="email">
+              {SETTINGS_PAGE.emailLabel}
+            </label>
+            <input id="email" name="email" type="email" required readOnly={isSelf} defaultValue={staff.email} autoComplete="off" className={FIELD_INPUT} />
+          </div>
+          <p className="m-0 -mt-2 text-xs text-muted sm:col-span-2">{isSelf ? SETTINGS_PAGE.emailHelpSelf : SETTINGS_PAGE.emailHelp}</p>
           <div>
             <label className={FIELD_LABEL} htmlFor="calendarProvider">
               {SETTINGS_PAGE.calendarLabel}
@@ -48,6 +61,21 @@ export default function EditStaffPanel({ staff, error, isSelf, data }: { staff: 
               ))}
             </select>
           </div>
+        </div>
+        <div>
+          <label className={FIELD_LABEL} htmlFor="calendarEmail">
+            {SETTINGS_PAGE.calendarEmailLabel}
+          </label>
+          <input
+            id="calendarEmail"
+            name="calendarEmail"
+            type="email"
+            defaultValue={staff.calendarEmail ?? ""}
+            placeholder={staff.email}
+            autoComplete="off"
+            className={FIELD_INPUT}
+          />
+          <p className="m-0 mt-1.5 text-xs text-muted">{SETTINGS_PAGE.calendarEmailHelp}</p>
         </div>
         <div>
           <label className={FIELD_LABEL} htmlFor="slug">

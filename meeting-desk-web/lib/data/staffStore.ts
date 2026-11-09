@@ -36,6 +36,7 @@ function rowToStaff(row: Record<string, any>): Staff {
     workingHours: NO_HOURS,
     timezone: "UTC",
     slug: row.slug,
+    calendarEmail: row.calendar_email ? String(row.calendar_email) : undefined,
   };
 }
 
@@ -101,7 +102,7 @@ export async function getStaffBySlugFromStore(slug: string): Promise<Staff | und
 
 export async function updateStaffInStore(
   id: string,
-  patch: Partial<Pick<Staff, "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles" | "slug">>,
+  patch: Partial<Pick<Staff, "name" | "email" | "calendarEmail" | "calendarProvider" | "bufferBeforeMin" | "bufferAfterMin" | "roles" | "slug">>,
 ): Promise<Staff> {
   const app = await tryGetCatalystApp();
   if (!app) {
@@ -115,6 +116,10 @@ export async function updateStaffInStore(
     .table(TABLE)
     .updateRow({
       ROWID: id,
+      ...("name" in patch ? { name: patch.name } : {}),
+      ...("email" in patch ? { email: patch.email } : {}),
+      // Only written when it changes, so saving anything else works even before the column exists.
+      ...("calendarEmail" in patch ? { calendar_email: patch.calendarEmail ?? "" } : {}),
       ...("calendarProvider" in patch ? { calendar_provider: patch.calendarProvider ?? "" } : {}),
       ...("bufferBeforeMin" in patch ? { buffer_before_min: patch.bufferBeforeMin } : {}),
       ...("bufferAfterMin" in patch ? { buffer_after_min: patch.bufferAfterMin } : {}),

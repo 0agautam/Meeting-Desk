@@ -24,10 +24,13 @@ export const SETTINGS_PAGE = {
   noCalendar: "No calendar",
   errors: {
     "last-admin": "There must always be at least one admin.",
-    invalid: "Enter a name, a valid email and at least one role.",
+    invalid: "Enter a name (up to 100 characters), a valid email and at least one role.",
     duplicate: "That email is already on the team.",
     "slug-invalid": "The booking link name can only have lowercase letters, numbers and single dashes (2 to 40 characters).",
     "slug-taken": "Another person already has that booking link name.",
+    "self-email": "You can't change your own sign-in email here. Ask another admin.",
+    "calendar-email-invalid": "Enter the calendar account email as a full email address, or leave it empty.",
+    "calendar-email-taken": "Another person already uses that email, so it can't be this person's calendar account.",
     self: "You can't delete your own account.",
     "has-requests": "This person still has meeting requests. Remove their host role instead, so the requests keep their history.",
     confirm: "Tick the box to confirm before deleting.",
@@ -47,6 +50,10 @@ export const SETTINGS_PAGE = {
   deleteDataButton: "Delete person and all their data",
   nameLabel: "Name",
   emailLabel: "Email",
+  emailHelp: "The email they sign in with. Changing it signs them out, and they sign in with the new one. Requests that already list their old email may need their attendees re-picked.",
+  emailHelpSelf: "This is your own sign-in email, so it can't be changed here. Ask another admin, so you can't lock yourself out.",
+  calendarEmailLabel: "Calendar account email (only if different)",
+  calendarEmailHelp: "The Google or Zoho account their calendar is in, when it isn't the sign-in email above. Leave empty if it is the same. They must approve their calendar with exactly this account.",
 } as const;
 
 export const CALENDAR_LABEL = { google: "Google", zoho: "Zoho" } as const;

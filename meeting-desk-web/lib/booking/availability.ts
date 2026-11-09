@@ -44,13 +44,18 @@ export function calendarPeople(
   host: Staff,
   staff: Staff[],
 ): { people: Staff[]; checked: Staff[]; outside: Attendee[] } {
-  const byEmail = new Map(staff.map((s) => [s.email.trim().toLowerCase(), s]));
+  // A person is known by their sign-in email and, if they have one, their calendar account email (the CRM may list either).
+  const byEmail = new Map<string, Staff>();
+  for (const s of staff) {
+    byEmail.set(s.email.trim().toLowerCase(), s);
+    if (s.calendarEmail?.trim()) byEmail.set(s.calendarEmail.trim().toLowerCase(), s);
+  }
   const people = [host];
   const checked = [host];
   const outside: Attendee[] = [];
   for (const attendee of request.attendees) {
     const email = attendee.email.trim().toLowerCase();
-    if (email === host.email.trim().toLowerCase()) continue;
+    if (byEmail.get(email) === host) continue;
     const member = byEmail.get(email);
     if (!member) {
       outside.push(attendee);
